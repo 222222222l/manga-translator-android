@@ -34,6 +34,7 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 将 `TranslationPipeline` 重构为 VLM-only：主翻译、缓存元数据、空白结果与 VL 直译统一走本地 MiniCPM 多模态模型，不再依赖 OCR/远程 LLM 主流程。
 - [x] 将 `FolderTranslationCoordinator` 的全文翻译入口改为复用本地 VLM 标准管线，绕过旧的“OCR 预处理 -> 术语抽取 -> 二次翻译”两阶段流程。
 - [x] 修复 `minicpm_v_jni.cpp` 与当前 `llama.cpp` API 漂移：切换到 `flash_attn_type`、`llama_memory_clear()` 与 `llama_token_to_piece()`。
+- [x] 根据最新 CI 原生日志修复 `mtmd` 链接失败：在 [CMakeLists.txt](file:///e:/翻译/manga-translator-android/app/src/main/cpp/CMakeLists.txt) 中显式纳入 `llama.cpp/tools/mtmd` 子目录，并开启 `LLAMA_BUILD_COMMON`、关闭 `LLAMA_OPENSSL` 以适配 Android 原生构建。
 
 ### Phase 2: C++ 引擎层接入 (llama.cpp)
 - [x] 在 `app/src/main/cpp` 中引入 `llama.cpp` 源码（包含 `llava` 多模态扩展支持）。
