@@ -26,21 +26,21 @@ jobs:
         cache: gradle
 
     - name: Set up Gradle
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v6
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Install Android SDK packages
-      run: |
-        yes | sdkmanager --licenses
-        sdkmanager --install "platforms;android-35" "ndk;26.3.11579264" "cmake;3.22.1"
+      uses: amyu/setup-android@v5
+      with:
+        cache-disabled: true
+        sdk-version: 35
+        ndk-version: 26.3.11579264
+        cmake-version: 3.22.1
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
     - name: Build with Gradle (Debug APK)
-      run: ./gradlew --no-daemon assembleDebug --stacktrace
+      run: ./gradlew --no-daemon assembleDebug --stacktrace --info
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
