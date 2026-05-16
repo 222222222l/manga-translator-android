@@ -7,6 +7,8 @@ set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "Build examples" FORCE)
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "Build server" FORCE)
 set(LLAMA_OPENSSL OFF CACHE BOOL "Disable OpenSSL for Android native build" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "Disable host-specific CPU tuning for Android cross-builds" FORCE)
+set(GGML_LLAMAFILE OFF CACHE BOOL "Disable llamafile kernels that break Android armv7 builds" FORCE)
 
 add_subdirectory(llama.cpp)
 

@@ -24,10 +24,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
                 arguments += "-DANDROID_STL=c++_shared"
+                arguments += "-DGGML_NATIVE=OFF"
+                arguments += "-DGGML_LLAMAFILE=OFF"
             }
         }
     }
