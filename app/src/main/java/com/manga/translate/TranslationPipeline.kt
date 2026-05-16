@@ -11,8 +11,30 @@ import android.graphics.BitmapFactory
 
 internal class TranslationPipeline(
     context: Context,
+    private val settingsStore: SettingsStore = SettingsStore(context.applicationContext),
+    private val llmClient: LlmClient = LlmClient(context.applicationContext, settingsStore),
+    private val store: TranslationStore = TranslationStore(),
+    private val ocrStore: OcrStore = OcrStore(),
+    private val ocrEngineRegistry: OcrEngineRegistry = OcrEngineRegistry(context.applicationContext, settingsStore),
+    private val bubbleTextRecognizer: BubbleTextRecognizer = BubbleTextRecognizer(
+        llmClient,
+        ocrEngineRegistry,
+        settingsStore
+    ),
+    private val textBubbleTranslationCoordinator: TextBubbleTranslationCoordinator =
+        TextBubbleTranslationCoordinator(llmClient = llmClient),
+    private val floatingBubbleTranslationCoordinator: FloatingBubbleTranslationCoordinator =
+        FloatingBubbleTranslationCoordinator(
+            llmClient = llmClient,
+            floatingTranslationCacheStore = FloatingTranslationCacheStore(context.applicationContext),
+            settingsStore = settingsStore
+        ),
     private val vlmClient: LocalVlmClient = LocalVlmClient(),
-    private val vlmManager: VlmModelManager = VlmModelManager(context.applicationContext)
+    private val vlmManager: VlmModelManager = VlmModelManager(context.applicationContext),
+    private val pageRegionDetector: PageRegionDetector = PageRegionDetector(
+        context.applicationContext,
+        settingsStore
+    )
 ) {
     private val appContext = context.applicationContext
 
@@ -582,12 +604,12 @@ internal class TranslationPipeline(
         } else {
             val customParamsFingerprint = settingsStore.loadCustomRequestParameters()
                 .asSequence()
-                .filter { it.enabled && it.targetProviderId == OCR_PROVIDER_ID }
-                .map {
+                .filter { parameter -> parameter.enabled && parameter.targetProviderId == OCR_PROVIDER_ID }
+                .map { parameter ->
                     buildString {
-                        append(it.key.trim())
+                        append(parameter.key.trim())
                         append('=')
-                        append(it.value.trim())
+                        append(parameter.value.trim())
                     }
                 }
                 .sorted()
@@ -618,6 +640,7 @@ internal class TranslationPipeline(
             when (language) {
                 TranslationLanguage.JA_TO_ZH -> when (ocrSettings.japaneseLocalOcrEngine) {
                     JapaneseLocalOcrEngine.MANGA_OCR_MOBILE -> "local_ja_mangaocr_mobile"
+                    else -> "local_ja_mangaocr_mobile"
                 }
                 TranslationLanguage.EN_TO_ZH -> "local_en"
                 TranslationLanguage.KO_TO_ZH -> "local_ko"

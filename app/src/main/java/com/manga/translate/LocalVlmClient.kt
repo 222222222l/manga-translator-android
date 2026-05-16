@@ -14,5 +14,5 @@ class LocalVlmClient {
     
     external fun freeModel()
 
-    // external fun processImage(...) : String
+    external fun processImage(imageBytes: ByteArray, prompt: String): String
 }

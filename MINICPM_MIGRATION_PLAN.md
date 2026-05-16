@@ -29,6 +29,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 清理无用依赖：移除原有的臃肿 OCR 库和模型 (将随管线重构同步进行)。
 - [x] 配置 GitHub Actions 云端构建 Debug APK（安装 Android SDK/NDK/CMake，并提前切换到 Node.js 24 运行时）。
 - [x] 基于 GitHub Actions / Android 官方环境信息调整 CI：升级到 Node 24 兼容的 Actions 版本，回退到稳定 `compileSdk/targetSdk 35`，并提高 Gradle 堆内存。
+- [x] 继续收敛 CI 环境噪音：将 `setup-gradle` 升级到 Node 24 兼容版本，替换 `android-actions/setup-android@v3` 为 `amyu/setup-android@v5`，并开启更详细的 Gradle 日志。
+- [x] 根据 GitHub Actions 的 Kotlin 编译日志修复 `TranslationPipeline` 半截重构问题：补齐旧依赖注入参数、恢复 `pageRegionDetector/settingsStore` 等字段、修复 `processImage()` JNI 声明与局部 lambda 编译错误。
 
 ### Phase 2: C++ 引擎层接入 (llama.cpp)
 - [x] 在 `app/src/main/cpp` 中引入 `llama.cpp` 源码（包含 `llava` 多模态扩展支持）。
