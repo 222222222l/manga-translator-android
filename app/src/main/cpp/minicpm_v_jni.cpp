@@ -45,7 +45,7 @@ Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jst
     ctx_params.n_ctx = 4096; // Adjust based on model
     ctx_params.n_threads = num_threads;
     ctx_params.n_threads_batch = num_threads;
-    ctx_params.flash_attn = true;
+    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
 
     g_lctx = llama_init_from_model(g_model, ctx_params);
     if (!g_lctx) {
@@ -136,7 +136,7 @@ Java_com_manga_translate_LocalVlmClient_processImage(JNIEnv *env, jobject thiz, 
     }
 
     // 3. Evaluate chunks (encode image & decode text)
-    llama_kv_cache_clear(g_lctx);
+    llama_memory_clear(llama_get_memory(g_lctx), true);
     llama_pos n_past = 0;
     
     int32_t eval_res = mtmd_helper_eval_chunks(g_mtmd_ctx, g_lctx, chunks, n_past, 0, 2048, true, &n_past);
@@ -161,10 +161,28 @@ Java_com_manga_translate_LocalVlmClient_processImage(JNIEnv *env, jobject thiz, 
             break;
         }
 
-        char buf[128];
-        int n = llama_vocab_detokenize(llama_model_get_vocab(g_model), id, buf, sizeof(buf), true);
+        std::string piece(128, '\0');
+        int n = llama_token_to_piece(
+            llama_model_get_vocab(g_model),
+            id,
+            piece.data(),
+            piece.size(),
+            0,
+            true
+        );
+        if (n < 0) {
+            piece.resize(static_cast<size_t>(-n));
+            n = llama_token_to_piece(
+                llama_model_get_vocab(g_model),
+                id,
+                piece.data(),
+                piece.size(),
+                0,
+                true
+            );
+        }
         if (n > 0) {
-            response += std::string(buf, n);
+            response.append(piece.data(), static_cast<size_t>(n));
         }
 
         llama_batch batch = llama_batch_get_one(&id, 1);

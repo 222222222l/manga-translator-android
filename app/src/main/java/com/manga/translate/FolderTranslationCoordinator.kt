@@ -189,10 +189,6 @@ internal class FolderTranslationCoordinator(
             onFinished()
             return null
         }
-        if (!llmClient.isConfigured()) {
-            ui.setFolderStatus(appContext.getString(R.string.missing_api_settings))
-            return null
-        }
         if (!translationRunning.compareAndSet(false, true)) {
             ui.setFolderStatus(appContext.getString(R.string.translation_preparing))
             return activeJob
@@ -332,10 +328,6 @@ internal class FolderTranslationCoordinator(
             ui.setFolderStatus(appContext.getString(R.string.translation_done))
             return null
         }
-        if (!llmClient.isConfigured()) {
-            ui.setFolderStatus(appContext.getString(R.string.missing_api_settings))
-            return null
-        }
         if (!translationRunning.compareAndSet(false, true)) {
             ui.setFolderStatus(appContext.getString(R.string.translation_preparing))
             return activeJob
@@ -466,234 +458,16 @@ internal class FolderTranslationCoordinator(
         language: TranslationLanguage,
         onTranslateEnabled: (Boolean) -> Unit
     ): Job? {
-        if (images.isEmpty()) {
-            ui.setFolderStatus(appContext.getString(R.string.folder_images_empty))
-            return null
-        }
-        val pendingImages = resolvePendingImages(
+        return translateFolderStandard(
+            scope = scope,
+            folder = folder,
             images = images,
             force = force,
-            fullTranslate = true,
-            useVlDirectTranslate = false,
-            language = language
+            glossaryProcessingEnabled = false,
+            useVlDirectTranslate = true,
+            language = language,
+            onTranslateEnabled = onTranslateEnabled
         )
-        if (pendingImages.isEmpty()) {
-            ui.setFolderStatus(appContext.getString(R.string.translation_done))
-            return null
-        }
-        if (!llmClient.isConfigured()) {
-            ui.setFolderStatus(appContext.getString(R.string.missing_api_settings))
-            return null
-        }
-        if (!translationRunning.compareAndSet(false, true)) {
-            ui.setFolderStatus(appContext.getString(R.string.translation_preparing))
-            return activeJob
-        }
-
-        cancellationRequested.set(false)
-        TranslationCancellationRegistry.register { cancelActiveTranslation() }
-        onTranslateEnabled(false)
-        try {
-            AppLogger.log(
-                "Library",
-                "Start full-page translating folder ${folder.name}, ${pendingImages.size} images"
-            )
-
-            val job = scope.launch {
-                var failed = false
-                try {
-                    val glossary = glossaryStore.load(folder).toMutableMap()
-                    val extractState = extractStateStore.load(folder)
-                    val ocrResults = ArrayList<PageOcrResult>(pendingImages.size)
-                    reportPreprocessProgress(
-                        stage = appContext.getString(R.string.folder_preprocess_stage_ocr),
-                        processed = 0,
-                        total = pendingImages.size
-                    )
-                    for ((index, image) in pendingImages.withIndex()) {
-                        currentCoroutineContext().ensureActive()
-                        reportPreprocessProgress(
-                            stage = appContext.getString(R.string.folder_preprocess_stage_ocr),
-                            processed = index,
-                            total = pendingImages.size,
-                            imageName = image.name
-                        )
-                        val result = try {
-                            translationPipeline.ocrImage(image, force, language) { }
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            AppLogger.log("Library", "OCR failed for ${image.name}", e)
-                            null
-                        }
-                        if (result != null) {
-                            ocrResults.add(result)
-                        } else {
-                            failed = true
-                        }
-                        reportPreprocessProgress(
-                            stage = appContext.getString(R.string.folder_preprocess_stage_ocr),
-                            processed = index + 1,
-                            total = pendingImages.size,
-                            imageName = image.name
-                        )
-                    }
-
-                    val glossaryPages = ocrResults.filterNot {
-                        translationPipeline.hasValidTranslation(
-                            imageFile = it.imageFile,
-                            fullTranslate = true,
-                            useVlDirectTranslate = false,
-                            language = language
-                        ) ||
-                            extractState.contains(it.imageFile.name)
-                    }
-                    val glossaryText = buildGlossaryText(glossaryPages)
-                    if (glossaryText.isNotBlank()) {
-                        val glossaryStage = appContext.getString(R.string.folder_preprocess_stage_glossary)
-                        val glossaryImage = glossaryPages.firstOrNull()?.imageFile?.name
-                        reportPreprocessProgress(
-                            stage = glossaryStage,
-                            processed = 0,
-                            total = 1,
-                            imageName = glossaryImage.orEmpty()
-                        )
-                        val abstractPromptAsset = "prompts/llm_prompts_abstract.json"
-                        while (true) {
-                            try {
-                                val extracted =
-                                    llmClient.extractGlossary(glossaryText, glossary, abstractPromptAsset)
-                                if (extracted != null) {
-                                    if (extracted.isNotEmpty()) {
-                                        for ((key, value) in extracted) {
-                                            if (!glossary.containsKey(key)) {
-                                                glossary[key] = value
-                                            }
-                                        }
-                                        glossaryStore.save(folder, glossary)
-                                    }
-                                    for (page in glossaryPages) {
-                                        extractState.add(page.imageFile.name)
-                                    }
-                                    extractStateStore.save(folder, extractState)
-                                }
-                                break
-                            } catch (e: LlmRequestException) {
-                                throw e
-                            } catch (e: LlmResponseException) {
-                                AppLogger.log("Library", "Full-page glossary response invalid", e)
-                                if (reportModelError(e.responseContent) == ModelErrorAction.SKIP) {
-                                    failed = true
-                                    break
-                                }
-                            }
-                        }
-                        reportPreprocessProgress(
-                            stage = glossaryStage,
-                            processed = 1,
-                            total = 1,
-                            imageName = glossaryImage.orEmpty()
-                        )
-                    }
-
-                    val glossaryMutex = Mutex()
-                    ui.setFolderStatus(appContext.getString(R.string.translation_preparing))
-                    failed = failed || executeConcurrentFullPages(
-                        pages = ocrResults,
-                        folder = folder,
-                        promptAsset = "prompts/llm_prompts_FullTrans.json",
-                        language = language,
-                        glossary = glossary,
-                        glossaryMutex = glossaryMutex,
-                        onCountUpdated = { processedCount ->
-                            withContext(Dispatchers.Main) {
-                                ui.setFolderStatus(
-                                    appContext.getString(
-                                        R.string.folder_translation_count,
-                                        processedCount,
-                                        pendingImages.size
-                                    )
-                                )
-                                TranslationKeepAliveService.updateProgress(
-                                    appContext,
-                                    processedCount,
-                                    pendingImages.size
-                                )
-                            }
-                        }
-                    )
-                    ui.setFolderStatus(
-                        if (failed) appContext.getString(R.string.translation_failed) else appContext.getString(
-                            R.string.translation_done
-                        )
-                    )
-                    if (failed) {
-                        GlobalTaskProgressStore.fail(
-                            appContext.getString(R.string.translation_keepalive_title),
-                            appContext.getString(R.string.translation_failed)
-                        )
-                    } else {
-                        GlobalTaskProgressStore.complete(
-                            appContext.getString(R.string.translation_keepalive_title),
-                            appContext.getString(R.string.translation_done)
-                        )
-                    }
-                    AppLogger.log(
-                        "Library",
-                        "Full-page translation ${if (failed) "completed with failures" else "completed"}: ${folder.name}"
-                    )
-                    if (!failed) {
-                        resumableTask = null
-                    }
-                    ui.refreshImages(folder)
-                } catch (e: LlmRequestException) {
-                    AppLogger.log("Library", "Full-page translation aborted", e)
-                    ui.showApiError(e.errorCode, e.responseBody)
-                    ui.setFolderStatus(appContext.getString(R.string.translation_failed))
-                    GlobalTaskProgressStore.fail(
-                        appContext.getString(R.string.translation_keepalive_title),
-                        appContext.getString(R.string.translation_failed)
-                    )
-                } catch (e: CancellationException) {
-                    if (cancellationRequested.get()) {
-                        AppLogger.log("Library", "Full-page translation canceled: ${folder.name}")
-                        ui.setFolderStatus(appContext.getString(R.string.translation_canceled))
-                        ui.showToast(R.string.translation_canceled)
-                        GlobalTaskProgressStore.complete(
-                            appContext.getString(R.string.translation_keepalive_title),
-                            appContext.getString(R.string.translation_canceled)
-                        )
-                        ui.refreshImages(folder)
-                    } else {
-                        throw e
-                    }
-                } finally {
-                    activeJob = null
-                    TranslationCancellationRegistry.clear()
-                    cancellationRequested.set(false)
-                    onTranslateEnabled(true)
-                    translationRunning.set(false)
-                }
-            }
-            activeJob = job
-            if (cancellationRequested.get()) {
-                job.cancel(CancellationException(USER_CANCELED_REASON))
-            }
-            return job
-        } catch (e: Exception) {
-            activeJob = null
-            TranslationCancellationRegistry.clear()
-            cancellationRequested.set(false)
-            onTranslateEnabled(true)
-            translationRunning.set(false)
-            AppLogger.log("Library", "Failed to start full-page translation ${folder.name}", e)
-            ui.setFolderStatus(appContext.getString(R.string.translation_failed))
-            GlobalTaskProgressStore.fail(
-                appContext.getString(R.string.translation_keepalive_title),
-                appContext.getString(R.string.translation_failed)
-            )
-            return null
-        }
     }
 
     private suspend fun translateCollectionFolderStandard(
@@ -750,109 +524,14 @@ internal class FolderTranslationCoordinator(
         translatedImages: Int,
         totalImages: Int
     ): CollectionTaskResult {
-        var failed = false
-        val glossary = glossaryStore.load(task.folder).toMutableMap()
-        val extractState = extractStateStore.load(task.folder)
-        val ocrResults = ArrayList<PageOcrResult>(task.pendingImages.size)
-        for ((index, image) in task.pendingImages.withIndex()) {
-            currentCoroutineContext().ensureActive()
-            reportCollectionProgress(
-                chapterIndex = chapterIndex,
-                chapterTotal = chapterTotal,
-                imageIndex = translatedImages + index,
-                imageTotal = totalImages,
-                chapterName = task.folder.name,
-                imageName = image.name
-            )
-            val result = try {
-                translationPipeline.ocrImage(image, task.force, task.language) { }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                AppLogger.log("Library", "Collection OCR failed for ${image.name}", e)
-                null
-            }
-            if (result != null) {
-                ocrResults.add(result)
-            } else {
-                failed = true
-            }
-        }
-
-        val glossaryPages = ocrResults.filterNot {
-            translationPipeline.hasValidTranslation(
-                imageFile = it.imageFile,
-                fullTranslate = true,
-                useVlDirectTranslate = false,
-                language = task.language
-            ) || extractState.contains(it.imageFile.name)
-        }
-        val glossaryText = buildGlossaryText(glossaryPages)
-        if (glossaryText.isNotBlank()) {
-            val abstractPromptAsset = "prompts/llm_prompts_abstract.json"
-            while (true) {
-                try {
-                    val extracted = llmClient.extractGlossary(glossaryText, glossary, abstractPromptAsset)
-                    if (extracted != null) {
-                        if (extracted.isNotEmpty()) {
-                            for ((key, value) in extracted) {
-                                if (!glossary.containsKey(key)) {
-                                    glossary[key] = value
-                                }
-                            }
-                            glossaryStore.save(task.folder, glossary)
-                        }
-                        for (page in glossaryPages) {
-                            extractState.add(page.imageFile.name)
-                        }
-                        extractStateStore.save(task.folder, extractState)
-                    }
-                    break
-                } catch (e: LlmRequestException) {
-                    AppLogger.log("Library", "Collection glossary extraction aborted", e)
-                    ui.showApiError(e.errorCode, e.responseBody)
-                    return CollectionTaskResult.ABORTED
-                } catch (e: LlmResponseException) {
-                    AppLogger.log("Library", "Collection glossary response invalid", e)
-                    if (reportModelError(e.responseContent) == ModelErrorAction.SKIP) {
-                        failed = true
-                        break
-                    }
-                }
-            }
-        }
-
-        val glossaryMutex = Mutex()
-        return try {
-            failed = failed || executeConcurrentFullPages(
-                pages = ocrResults,
-                folder = task.folder,
-                promptAsset = "prompts/llm_prompts_FullTrans.json",
-                language = task.language,
-                glossary = glossary,
-                glossaryMutex = glossaryMutex,
-                onCountUpdated = { processedCount ->
-                    val imageName = ocrResults
-                        .getOrNull((processedCount - 1).coerceAtLeast(0))
-                        ?.imageFile
-                        ?.name
-                        .orEmpty()
-                    reportCollectionProgress(
-                        chapterIndex = chapterIndex,
-                        chapterTotal = chapterTotal,
-                        imageIndex = translatedImages + processedCount,
-                        imageTotal = totalImages,
-                        chapterName = task.folder.name,
-                        imageName = imageName
-                    )
-                }
-            )
-            if (failed) CollectionTaskResult.FAILED else CollectionTaskResult.SUCCESS
-        } catch (e: LlmRequestException) {
-            AppLogger.log("Library", "Collection full translation aborted for ${task.folder.name}", e)
-            ui.showApiError(e.errorCode, e.responseBody)
-            CollectionTaskResult.ABORTED
-        }
+        return translateCollectionFolderStandard(
+            scope = scope,
+            task = task.copy(fullTranslate = false, useVlDirectTranslate = true, glossaryProcessingEnabled = false),
+            chapterIndex = chapterIndex,
+            chapterTotal = chapterTotal,
+            translatedImages = translatedImages,
+            totalImages = totalImages
+        )
     }
 
     private fun reportCollectionProgress(
@@ -1063,79 +742,18 @@ internal class FolderTranslationCoordinator(
         glossary: MutableMap<String, String>,
         glossaryMutex: Mutex
     ): PageTranslationExecutionResult {
-        val orderedProviders = scheduler.orderedCandidatesForPage()
-        if (orderedProviders.isEmpty()) {
-            throw LlmRequestException("MISSING_API_SETTINGS", "No configured translation provider")
+        val glossarySnapshot = glossaryMutex.withLock { LinkedHashMap(glossary) }
+        val result = translationPipeline.translateImage(
+            imageFile = image,
+            glossary = glossarySnapshot,
+            forceOcr = force,
+            language = language,
+            providerContext = null
+        ) { }
+        if (result != null) {
+            AppLogger.log("Library", "Translated ${image.name} via local MiniCPM-V pipeline")
+            return PageTranslationExecutionResult(result = result)
         }
-        var lastResponseException: LlmResponseException? = null
-        var lastRequestException: LlmRequestException? = null
-        orderedProviders.forEach { providerContext ->
-            try {
-                val glossarySnapshot = glossaryMutex.withLock { LinkedHashMap(glossary) }
-                val result = translationPipeline.translateImage(
-                    imageFile = image,
-                    glossary = glossarySnapshot,
-                    forceOcr = force,
-                    language = language,
-                    providerContext = providerContext
-                ) { }
-                if (result != null) {
-                    val glossaryUsed = if (glossaryProcessingEnabled) {
-                        glossarySnapshot.filterKeys { key ->
-                            glossary[key] != glossarySnapshot[key]
-                        }
-                    } else {
-                        emptyMap()
-                    }
-                    if (glossaryProcessingEnabled) {
-                        mergeGlossary(glossary, glossaryUsed, glossaryMutex, folder)
-                    }
-                    AppLogger.log(
-                        "Library",
-                        "Translated ${image.name} via ${providerContext.displayName}"
-                    )
-                    return PageTranslationExecutionResult(
-                        result = result,
-                        glossaryUsed = glossaryUsed
-                    )
-                }
-            } catch (e: LlmRequestException) {
-                lastRequestException = e
-                AppLogger.log(
-                    "Library",
-                    "Provider ${providerContext.displayName} request failed for ${image.name}",
-                    e
-                )
-            } catch (e: LlmResponseException) {
-                lastResponseException = e
-                AppLogger.log(
-                    "Library",
-                    "Provider ${providerContext.displayName} returned invalid response for ${image.name}",
-                    e
-                )
-            }
-        }
-        if (lastResponseException != null) {
-            AppLogger.log("Library", "Invalid model response for ${image.name}", lastResponseException)
-            return when (reportModelError(lastResponseException.responseContent)) {
-                ModelErrorAction.RETRY -> {
-                    val retried = retryStandardImage(
-                        folder = folder,
-                        image = image,
-                        force = force,
-                        glossaryProcessingEnabled = glossaryProcessingEnabled,
-                        language = language,
-                        scheduler = scheduler
-                    )
-                    PageTranslationExecutionResult(recoveredFromModelError = retried)
-                }
-                ModelErrorAction.SKIP -> {
-                    skipStandardImage(folder, image, force, language)
-                    PageTranslationExecutionResult(recoveredFromModelError = true)
-                }
-            }
-        }
-        lastRequestException?.let { throw it }
         return PageTranslationExecutionResult()
     }
 

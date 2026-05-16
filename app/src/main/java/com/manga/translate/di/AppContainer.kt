@@ -51,14 +51,7 @@ internal class AppContainer(private val appContext: Context) {
     fun createTranslationPipeline(): TranslationPipeline {
         return TranslationPipeline(
             context = appContext,
-            llmClient = llmClient,
-            settingsStore = settingsStore,
-            store = translationStore,
-            ocrStore = ocrStore,
-            ocrEngineRegistry = ocrEngineRegistry,
-            bubbleTextRecognizer = bubbleTextRecognizer,
-            textBubbleTranslationCoordinator = textBubbleTranslationCoordinator,
-            floatingBubbleTranslationCoordinator = createFloatingBubbleTranslationCoordinator()
+            store = translationStore
         )
     }
 
