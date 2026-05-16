@@ -477,6 +477,10 @@ class LibraryFragment : Fragment() {
     }
 
     private fun handleFloatingTranslateClick() {
+        if (!translationPipeline.isLocalModelReady()) {
+            Toast.makeText(requireContext(), R.string.floating_vl_model_required, Toast.LENGTH_LONG).show()
+            return
+        }
         if (canDrawOverlays()) {
             launchScreenCapturePermissionRequest()
             return
@@ -1117,6 +1121,10 @@ class LibraryFragment : Fragment() {
 
     private fun translateFolder() {
         val folder = currentFolder ?: return
+        if (!translationPipeline.isLocalModelReady()) {
+            Toast.makeText(requireContext(), R.string.folder_vl_model_required, Toast.LENGTH_LONG).show()
+            return
+        }
         selectionController.exitSelectionMode()
         if (repository.isCollectionFolder(folder)) {
             runCollectionTranslation(folder, force = false)

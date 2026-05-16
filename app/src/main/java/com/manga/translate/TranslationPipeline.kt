@@ -1,19 +1,22 @@
 package com.manga.translate
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.RectF
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
+import java.io.ByteArrayOutputStream
 import kotlin.math.max
 
 internal class TranslationPipeline(
     context: Context,
     private val store: TranslationStore = TranslationStore(),
     private val vlmClient: LocalVlmClient = LocalVlmClient(),
-    private val vlmManager: VlmModelManager = VlmModelManager(context.applicationContext)
+    private val vlmManager: VlmModelManager = VlmModelManager(context.applicationContext),
+    private val settingsStore: SettingsStore = SettingsStore(context.applicationContext)
 ) {
     @Volatile
     private var modelInitialized = false
@@ -46,7 +49,12 @@ internal class TranslationPipeline(
         try {
             onProgress("正在分析图片并翻译...")
             val prompt = buildVlmPrompt(language, glossary)
-            val jsonResult = vlmClient.processImage(imageFile.readBytes(), prompt)
+            val jsonResult = runCatching {
+                vlmClient.processImage(imageFile.readBytes(), prompt)
+            }.getOrElse { error ->
+                AppLogger.log("Pipeline", "Local VLM inference failed for ${imageFile.name}", error)
+                return@withContext null
+            }
             AppLogger.log("Pipeline", "VLM Result: $jsonResult")
             val translatedBubbles = parseVlmJsonToBubbles(jsonResult, bitmap.width, bitmap.height)
             onProgress("翻译完成")
@@ -131,16 +139,89 @@ internal class TranslationPipeline(
         imageFile: File,
         language: TranslationLanguage
     ): FolderVlTranslateOutcome {
-        return FolderVlTranslateOutcome(
-            result = translateImage(
-                imageFile = imageFile,
-                glossary = mutableMapOf(),
-                forceOcr = false,
-                language = language,
-                providerContext = null,
-                onProgress = { }
+        if (!isLocalModelReady()) {
+            return FolderVlTranslateOutcome(requiresVlModel = true)
+        }
+        val result = translateImage(
+            imageFile = imageFile,
+            glossary = mutableMapOf(),
+            forceOcr = false,
+            language = language,
+            providerContext = null,
+            onProgress = { }
+        )
+        return FolderVlTranslateOutcome(result = result)
+    }
+
+    suspend fun translateBitmap(
+        bitmap: Bitmap,
+        language: TranslationLanguage,
+        glossary: Map<String, String> = emptyMap()
+    ): TranslationResult? = withContext(Dispatchers.Default) {
+        if (!isLocalModelReady()) {
+            AppLogger.log("Pipeline", "Missing VLM models for bitmap translation")
+            return@withContext null
+        }
+        if (!ensureModelReady()) {
+            AppLogger.log("Pipeline", "Failed to initialize local VLM for bitmap translation")
+            return@withContext null
+        }
+        val imageBytes = ByteArrayOutputStream().use { output ->
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                AppLogger.log("Pipeline", "Failed to encode bitmap for translation")
+                return@withContext null
+            }
+            output.toByteArray()
+        }
+        val jsonResult = runCatching {
+            vlmClient.processImage(imageBytes, buildVlmPrompt(language, glossary))
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "Bitmap translation inference failed", error)
+            return@withContext null
+        }
+        val translatedBubbles = parseVlmJsonToBubbles(jsonResult, bitmap.width, bitmap.height)
+        TranslationResult(
+            imageName = "",
+            width = bitmap.width,
+            height = bitmap.height,
+            bubbles = translatedBubbles,
+            metadata = TranslationMetadata(
+                mode = TranslationMetadata.MODE_VL_DIRECT,
+                language = language.name,
+                promptAsset = LOCAL_PROMPT_ASSET,
+                modelName = LOCAL_MODEL_NAME,
+                providerId = LOCAL_PROVIDER_ID,
+                apiFormat = LOCAL_API_FORMAT,
+                ocrCacheMode = LOCAL_CACHE_MODE
             )
         )
+    }
+
+    suspend fun translateBubbleCrop(
+        bitmap: Bitmap,
+        language: TranslationLanguage
+    ): String? = withContext(Dispatchers.Default) {
+        if (!isLocalModelReady()) {
+            return@withContext null
+        }
+        if (!ensureModelReady()) {
+            AppLogger.log("Pipeline", "Local VLM is not ready for bubble crop translation")
+            return@withContext null
+        }
+        val imageBytes = ByteArrayOutputStream().use { output ->
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                AppLogger.log("Pipeline", "Failed to encode bubble crop")
+                return@withContext null
+            }
+            output.toByteArray()
+        }
+        val rawOutput = runCatching {
+            vlmClient.processImage(imageBytes, buildBubblePrompt(language))
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "Bubble crop translation failed", error)
+            return@withContext null
+        }
+        sanitizeBubbleTranslation(rawOutput)
     }
 
     fun hasValidTranslation(
@@ -224,15 +305,21 @@ internal class TranslationPipeline(
         return store.translationFileFor(imageFile)
     }
 
+    fun isLocalModelReady(): Boolean {
+        return vlmManager.isModelReady()
+    }
+
     @Synchronized
     private fun ensureModelReady(): Boolean {
         if (modelInitialized) {
             return true
         }
+        val maxThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        val configuredThreads = settingsStore.loadLocalVlmThreadCount().coerceIn(1, maxThreads)
         val initialized = vlmClient.initModel(
             vlmManager.textModelFile.absolutePath,
             vlmManager.mmprojModelFile.absolutePath,
-            Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
+            configuredThreads
         )
         modelInitialized = initialized
         return initialized
@@ -262,6 +349,22 @@ internal class TranslationPipeline(
                     append('\n')
                 }
             }
+        }
+    }
+
+    private fun buildBubblePrompt(language: TranslationLanguage): String {
+        val targetLang = when (language) {
+            TranslationLanguage.JA_TO_ZH,
+            TranslationLanguage.EN_TO_ZH,
+            TranslationLanguage.KO_TO_ZH -> "中文"
+        }
+        return buildString {
+            append("<__media__>\n")
+            append("图片中只包含一个漫画气泡或一小段对白区域。\n")
+            append("请直接输出翻译后的")
+            append(targetLang)
+            append("文本。\n")
+            append("不要输出 JSON，不要解释，不要加引号；如果没有可翻译文字则输出空字符串。")
         }
     }
 
@@ -342,6 +445,30 @@ internal class TranslationPipeline(
             return null
         }
         return RectF(clampedLeft, clampedTop, clampedRight, clampedBottom)
+    }
+
+    private fun sanitizeBubbleTranslation(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) {
+            return ""
+        }
+        val jsonStart = trimmed.indexOf('{')
+        val jsonEnd = trimmed.lastIndexOf('}')
+        if (jsonStart != -1 && jsonEnd > jsonStart) {
+            runCatching {
+                val obj = org.json.JSONObject(trimmed.substring(jsonStart, jsonEnd + 1))
+                obj.optString("translation").trim().takeIf { it.isNotBlank() }
+            }.getOrNull()?.let { return it }
+        }
+        return trimmed
+            .removePrefix("```json")
+            .removePrefix("```")
+            .removeSuffix("```")
+            .trim()
+            .lineSequence()
+            .map { it.trim().trim('"', '\'') }
+            .firstOrNull { it.isNotBlank() }
+            .orEmpty()
     }
 
     private fun buildExpectedTranslationMetadata(

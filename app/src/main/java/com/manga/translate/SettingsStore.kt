@@ -261,6 +261,20 @@ class SettingsStore(context: Context) {
             }
     }
 
+    fun loadLocalVlmThreadCount(): Int {
+        return prefs.getInt(KEY_LOCAL_VLM_THREAD_COUNT, DEFAULT_LOCAL_VLM_THREAD_COUNT)
+            .coerceIn(MIN_LOCAL_VLM_THREAD_COUNT, MAX_LOCAL_VLM_THREAD_COUNT)
+    }
+
+    fun saveLocalVlmThreadCount(threadCount: Int) {
+        prefs.edit() {
+            putInt(
+                KEY_LOCAL_VLM_THREAD_COUNT,
+                threadCount.coerceIn(MIN_LOCAL_VLM_THREAD_COUNT, MAX_LOCAL_VLM_THREAD_COUNT)
+            )
+        }
+    }
+
     fun loadUseHorizontalText(): Boolean {
         return prefs.getBoolean(KEY_HORIZONTAL_TEXT, true)
     }
@@ -1135,6 +1149,7 @@ class SettingsStore(context: Context) {
         private const val KEY_FLOATING_BUBBLE_MIN_AREA_PER_CHAR_SP =
             "floating_bubble_min_area_per_char_sp"
         private const val KEY_OCR_API_TIMEOUT_SECONDS = "ocr_api_timeout_seconds"
+        private const val KEY_LOCAL_VLM_THREAD_COUNT = "local_vlm_thread_count"
         private const val KEY_HORIZONTAL_TEXT = "horizontal_text_layout"
         private const val KEY_NORMAL_BUBBLE_SHRINK_PERCENT = "normal_bubble_shrink_percent"
         private const val KEY_NORMAL_BUBBLE_MIN_AREA_PER_CHAR_SP = "normal_bubble_min_area_per_char_sp"
@@ -1174,6 +1189,9 @@ class SettingsStore(context: Context) {
         private const val DEFAULT_OCR_API_TIMEOUT_SECONDS = 300
         private const val MIN_OCR_API_TIMEOUT_SECONDS = 30
         private const val MAX_OCR_API_TIMEOUT_SECONDS = 1200
+        private const val DEFAULT_LOCAL_VLM_THREAD_COUNT = 4
+        private const val MIN_LOCAL_VLM_THREAD_COUNT = 1
+        private const val MAX_LOCAL_VLM_THREAD_COUNT = 8
         private const val DEFAULT_FLOATING_VL_TRANSLATE_CONCURRENCY = 1
         private const val MIN_FLOATING_VL_TRANSLATE_CONCURRENCY = 1
         private const val MAX_FLOATING_VL_TRANSLATE_CONCURRENCY = 16

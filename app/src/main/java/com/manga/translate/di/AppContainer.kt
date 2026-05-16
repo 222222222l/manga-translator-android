@@ -75,22 +75,17 @@ internal class AppContainer(private val appContext: Context) {
         return ReadingEmptyBubbleCoordinator(
             context = appContext,
             translationStore = translationStore,
-            glossaryStore = glossaryStore,
             repository = libraryRepository,
             libraryPrefs = libraryPrefs,
-            settingsStore = settingsStore,
-            bubbleTextRecognizer = bubbleTextRecognizer,
-            textBubbleTranslationCoordinator = textBubbleTranslationCoordinator
+            translationPipeline = createTranslationPipeline()
         )
     }
 
     fun createFloatingEmptyBubbleCoordinator(): FloatingEmptyBubbleCoordinator {
         return FloatingEmptyBubbleCoordinator(
             context = appContext,
-            llmClient = llmClient,
-            floatingTranslationCacheStore = floatingTranslationCacheStore,
             settingsStore = settingsStore,
-            bubbleTextRecognizer = bubbleTextRecognizer
+            translationPipeline = createTranslationPipeline()
         )
     }
 

@@ -1535,6 +1535,10 @@ class ReadingFragment : Fragment() {
         val translation = currentTranslation ?: return
         val folder = readingSessionViewModel.currentFolder.value ?: return
         if (translation.bubbles.none { it.needsTranslationRetry() }) return
+        if (!translationPipeline.isLocalModelReady()) {
+            Toast.makeText(requireContext(), R.string.folder_vl_model_required, Toast.LENGTH_LONG).show()
+            return
+        }
         Toast.makeText(requireContext(), R.string.reading_empty_bubble_translating, Toast.LENGTH_SHORT).show()
         emptyBubbleJob?.cancel()
         emptyBubbleJob = viewLifecycleOwner.lifecycleScope.launch {

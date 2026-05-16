@@ -323,6 +323,7 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         settingsPersistenceController = SettingsPersistenceController(settingsStore)
+        configureLocalOnlyUi()
         reloadSettingsUiFromStore()
         binding.modelIoLoggingSwitch.setOnCheckedChangeListener { _, isChecked ->
             settingsStore.saveModelIoLogging(isChecked)
@@ -406,6 +407,22 @@ class SettingsFragment : Fragment() {
         updateVlmModelStatus()
     }
 
+    private fun configureLocalOnlyUi() {
+        binding.apiUrlHintText.text = "当前版本已收敛为本地 MiniCPM 端侧模式，以下云端 API 配置已不再作为主流程入口。"
+        binding.apiUrlLayout.isGone = true
+        binding.apiFormatButton.isGone = true
+        binding.apiKeyLayout.isGone = true
+        binding.modelNameLayout.isGone = true
+        binding.apiTimeoutLayout.isGone = true
+        binding.apiRetryCountLayout.isGone = true
+        binding.fetchModelsButton.isGone = true
+        binding.aiProviderProfilesButton.isGone = true
+        binding.multiProviderSchedulingButton.isGone = true
+        binding.llmParamsButton.isGone = true
+        binding.customRequestParamsButton.isGone = true
+        binding.ocrSettingsButton.isGone = true
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -422,6 +439,8 @@ class SettingsFragment : Fragment() {
         val url = binding.apiUrlInput.text?.toString()?.trim().orEmpty()
         val key = binding.apiKeyInput.text?.toString()?.trim().orEmpty()
         val model = binding.modelNameInput.text?.toString()?.trim().orEmpty()
+        val vlmThreadsInput = binding.etVlmThreads.text?.toString()?.trim()
+        val vlmThreads = parseIntInput(vlmThreadsInput) ?: settingsStore.loadLocalVlmThreadCount()
         val timeoutInput = binding.apiTimeoutInput.text?.toString()?.trim()
         val timeoutSeconds = parseIntInput(timeoutInput) ?: settingsStore.loadApiTimeoutSeconds()
         val retryCountInput = binding.apiRetryCountInput.text?.toString()?.trim()
@@ -458,6 +477,11 @@ class SettingsFragment : Fragment() {
                 getString(R.string.max_concurrency_provider_count_error, minimumConcurrency),
                 Toast.LENGTH_SHORT
             ).show()
+        }
+        settingsStore.saveLocalVlmThreadCount(vlmThreads)
+        val normalizedVlmThreads = formatNumber(settingsStore.loadLocalVlmThreadCount())
+        if (normalizedVlmThreads != vlmThreadsInput) {
+            binding.etVlmThreads.setText(normalizedVlmThreads)
         }
         AppLogger.log("Settings", "API settings saved")
     }
@@ -723,6 +747,7 @@ class SettingsFragment : Fragment() {
         } else {
             "视觉模型 (mmproj): 未导入"
         }
+        binding.etVlmThreads.setText(formatNumber(settingsStore.loadLocalVlmThreadCount()))
     }
 
     private fun requiredMainTranslationProviderConcurrency(): Int {
@@ -757,6 +782,7 @@ class SettingsFragment : Fragment() {
         binding.apiTimeoutInput.setText(formatNumber(settingsStore.loadApiTimeoutSeconds()))
         binding.apiRetryCountInput.setText(formatNumber(settingsStore.loadApiRetryCount()))
         binding.maxConcurrencyInput.setText(formatNumber(settingsStore.loadMaxConcurrency()))
+        binding.etVlmThreads.setText(formatNumber(settingsStore.loadLocalVlmThreadCount()))
         binding.modelIoLoggingSwitch.isChecked = settingsStore.loadModelIoLogging()
         updateLanguageButton(settingsStore.loadAppLanguage())
         updateThemeButton(settingsStore.loadThemeMode())
@@ -1525,15 +1551,15 @@ class SettingsFragment : Fragment() {
         dialogBinding.floatingVlTranslateConcurrencyInput.setText(
             formatNumber(currentSettings.ocrConcurrencyLimit)
         )
-        dialogBinding.floatingUseVlDirectTranslateSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.floating_use_vl_direct_translate_warning,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
+        dialogBinding.floatingUseVlDirectTranslateSwitch.isGone = true
+        dialogBinding.floatingTranslateVlNote.isGone = true
+        dialogBinding.floatingVlTranslateConcurrencyLayout.isGone = true
+        dialogBinding.floatingApiTimeoutLayout.isGone = true
+        dialogBinding.floatingApiUrlLayout.isGone = true
+        dialogBinding.floatingApiKeyLayout.isGone = true
+        dialogBinding.floatingModelNameLayout.isGone = true
+        dialogBinding.floatingTranslateSettingsNote.text =
+            "悬浮翻译当前固定使用本地 MiniCPM 端侧模型，保留此处的语言、校对模式、自动关闭和手势配置。"
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.floating_translate_settings_title)
             .setView(dialogBinding.root)
@@ -1558,8 +1584,7 @@ class SettingsFragment : Fragment() {
                             currentSettings.language
                         ),
                         timeoutSeconds = timeoutSeconds,
-                        useVlDirectTranslate =
-                            dialogBinding.floatingUseVlDirectTranslateSwitch.isChecked,
+                        useVlDirectTranslate = false,
                         ocrConcurrencyLimit = ocrConcurrencyLimit,
                         proofreadingModeEnabled =
                             dialogBinding.floatingProofreadingModeSwitch.isChecked,

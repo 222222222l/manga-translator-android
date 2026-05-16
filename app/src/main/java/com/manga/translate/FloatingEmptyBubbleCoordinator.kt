@@ -3,22 +3,13 @@ package com.manga.translate
 import android.content.Context
 import android.graphics.Bitmap
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 class FloatingEmptyBubbleCoordinator(
     context: Context,
-    private val llmClient: LlmClient,
-    private val floatingTranslationCacheStore: FloatingTranslationCacheStore,
     private val settingsStore: SettingsStore,
-    private val bubbleTextRecognizer: BubbleTextRecognizer
+    private val translationPipeline: TranslationPipeline
 ) {
-    private val floatingBubbleTranslationCoordinator = FloatingBubbleTranslationCoordinator(
-        llmClient = llmClient,
-        floatingTranslationCacheStore = floatingTranslationCacheStore,
-        settingsStore = settingsStore
-    )
-
     suspend fun process(
         bitmap: Bitmap,
         baseTranslation: TranslationResult,
@@ -33,137 +24,39 @@ class FloatingEmptyBubbleCoordinator(
             return@withContext FloatingEmptyBubbleOutcome(baseTranslation)
         }
 
-        val client = llmClient
-        val floatingSettings = settingsStore.loadFloatingTranslateApiSettings()
-        val floatingApiSettings = settingsStore.loadResolvedFloatingTranslateApiSettings()
-        val useVlDirectTranslate =
-            floatingSettings.useVlDirectTranslate && client.isConfigured(floatingApiSettings)
-
-        val updatedBubbles = if (useVlDirectTranslate) {
-            val outcome = translateBubbleImages(
-                bitmap = bitmap,
-                bubbles = targets,
-                timeoutMs = timeoutMs,
-                retryCount = retryCount,
-                apiSettings = floatingApiSettings,
-                promptAsset = floatVlPromptAsset,
-                concurrency = floatingSettings.ocrConcurrencyLimit,
-                maxVlConcurrency = maxVlConcurrency
-            )
-            if (outcome.requiresVlModel || outcome.timedOut) {
-                return@withContext FloatingEmptyBubbleOutcome(
-                    translation = baseTranslation,
-                    timedOut = outcome.timedOut,
-                    requiresVlModel = outcome.requiresVlModel
-                )
-            }
-            baseTranslation.bubbles.map { bubble ->
-                outcome.bubbles.firstOrNull { it.id == bubble.id }?.let { bubble.withContentFrom(it) } ?: bubble
-            }
-        } else {
-            val recognized = recognizeEmptyBubbles(bitmap, targets)
-            val translated = translateRecognizedBubbles(
-                bubbles = recognized,
-                timeoutMs = timeoutMs,
-                retryCount = retryCount,
-                promptAsset = floatPromptAsset,
-                apiSettings = floatingApiSettings
-            ) ?: return@withContext FloatingEmptyBubbleOutcome(
+        if (!translationPipeline.isLocalModelReady()) {
+            return@withContext FloatingEmptyBubbleOutcome(
                 translation = baseTranslation,
-                timedOut = true
+                requiresVlModel = true
             )
-            val translationMap = translated.associateBy { it.id }
-            baseTranslation.bubbles.map { bubble ->
-                translationMap[bubble.id]?.let { bubble.withContentFrom(it) } ?: bubble
-            }
         }
 
-        FloatingEmptyBubbleOutcome(baseTranslation.copy(bubbles = updatedBubbles))
-    }
-
-    private suspend fun recognizeEmptyBubbles(
-        bitmap: Bitmap,
-        bubbles: List<BubbleTranslation>
-    ): List<BubbleTranslation> = withContext(Dispatchers.Default) {
         val floatingLanguage = settingsStore.loadFloatingTranslateApiSettings().language
-        val ocrSettings = settingsStore.loadOcrApiSettings()
-        bubbles.map { bubble ->
+        val translatedMap = LinkedHashMap<Int, BubbleTranslation>(targets.size)
+        targets.forEach { bubble ->
             val crop = cropBitmap(bitmap, bubble.rect)
-            val text = try {
-                if (crop == null) {
-                    ""
-                } else {
-                    recognizeBubble(crop, floatingLanguage, ocrSettings.useLocalOcr)
-                }
+            val translatedText = try {
+                crop?.let { translationPipeline.translateBubbleCrop(it, floatingLanguage) }.orEmpty()
             } catch (e: Exception) {
-                AppLogger.log("FloatingOCR", "Recognize empty bubble failed id=${bubble.id}", e)
+                AppLogger.log("FloatingOCR", "Local floating bubble translation failed id=${bubble.id}", e)
                 ""
             } finally {
                 crop?.recycle()
             }
-            bubble.withRecognizedOriginalText(text)
+            if (translatedText.isNotBlank()) {
+                translatedMap[bubble.id] = bubble.withTranslationResult(translatedText)
+            }
         }
-    }
-
-    private suspend fun translateRecognizedBubbles(
-        bubbles: List<BubbleTranslation>,
-        timeoutMs: Int,
-        retryCount: Int,
-        promptAsset: String,
-        apiSettings: ApiSettings
-    ): List<BubbleTranslation>? {
-        return floatingBubbleTranslationCoordinator.translateTextBubbles(
-            bubbles = bubbles,
-            timeoutMs = timeoutMs,
-            retryCount = retryCount,
-            promptAsset = promptAsset,
-            apiSettings = apiSettings,
-            language = settingsStore.loadFloatingTranslateApiSettings().language,
-            logTag = "FloatingOCR"
+        if (translatedMap.isEmpty()) {
+            return@withContext FloatingEmptyBubbleOutcome(translation = baseTranslation)
+        }
+        val updatedBubbles = baseTranslation.bubbles.map { bubble ->
+            translatedMap[bubble.id]?.let { bubble.withContentFrom(it) } ?: bubble
+        }
+        FloatingEmptyBubbleOutcome(
+            translation = baseTranslation.copy(bubbles = updatedBubbles)
         )
     }
-
-    private suspend fun recognizeBubble(
-        crop: Bitmap,
-        language: TranslationLanguage,
-        useLocalOcr: Boolean
-    ): String = withContext(Dispatchers.Default) {
-        bubbleTextRecognizer.recognizeCrop(
-            crop = crop,
-            language = language,
-            useLocalOcr = useLocalOcr,
-            logTag = "FloatingOCR"
-        )
-    }
-
-    private suspend fun translateBubbleImages(
-        bitmap: Bitmap,
-        bubbles: List<BubbleTranslation>,
-        timeoutMs: Int,
-        retryCount: Int,
-        apiSettings: ApiSettings,
-        promptAsset: String,
-        concurrency: Int,
-        maxVlConcurrency: Int
-    ): FloatingVlBubbleTranslateOutcome = coroutineScope {
-        val outcome = floatingBubbleTranslationCoordinator.translateImageBubbles(
-            bitmap = bitmap,
-            bubbles = bubbles,
-            timeoutMs = timeoutMs,
-            retryCount = retryCount,
-            promptAsset = promptAsset,
-            apiSettings = apiSettings,
-            concurrency = concurrency,
-            maxConcurrency = maxVlConcurrency,
-            logTag = "FloatingOCR"
-        )
-        return@coroutineScope FloatingVlBubbleTranslateOutcome(
-            bubbles = outcome.bubbles,
-            timedOut = outcome.timedOut,
-            requiresVlModel = outcome.requiresVlModel
-        )
-    }
-
 }
 
 data class FloatingEmptyBubbleOutcome(
@@ -172,8 +65,3 @@ data class FloatingEmptyBubbleOutcome(
     val requiresVlModel: Boolean = false
 )
 
-private data class FloatingVlBubbleTranslateOutcome(
-    val bubbles: List<BubbleTranslation> = emptyList(),
-    val timedOut: Boolean = false,
-    val requiresVlModel: Boolean = false
-)
