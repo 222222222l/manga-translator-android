@@ -1,0 +1,57 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Local configuration
+local.properties
+*.keystore
+keystore.jks
+
+# APK / AAB outputs
+*.apk
+*.ap_
+*.aab
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+.claude/
+.kilo/
+.codex
+
+# Kotlin/Java
+*.class
+*.log
+.kotlin/
+
+# Native build / CMake
+.cxx/
+*/.cxx/
+.externalNativeBuild/
+*/.externalNativeBuild/
+
+# Lint / reports
+lint-results*.html
+lint-results*.xml
+lint-results*.txt
+lint-reports/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large model assets
+assets/models/
+archived_models/
+
+
+# Misc
+*.swp
+*.swo

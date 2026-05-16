@@ -1,0 +1,259 @@
+{
+  "versionCode": 57,
+  "versionName": "3.1.1",
+  "releaseChannel": "stable",
+  "releasedAt": "2026-05-09",
+  "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.1.1/app-release.apk",
+  "changelog": "修复上个版本更新后原本翻译内容消失的bug",
+  "history": [
+    {
+      "versionCode": 56,
+      "versionName": "3.1.0",
+      "releaseChannel": "preview",
+      "releasedAt": "2026-05-08",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.1.0/app-release.apk",
+      "changelog": "修复错误弹窗被忽略、自定义参数供应商切换异常、章节页触控失效、悬浮框气泡形状无法选择以及 VL 直译错误等问题。修复缓存跨语言错误。修复了一些细节。"
+    },
+    {
+      "versionCode": 54,
+      "versionName": "3.0.13",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-05-07",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.13/app-release.apk",
+      "changelog": "新增多供应商翻译调度，支持为 OCR 和多供应商配置自定义请求参数；新增移动端模型与轻量化日文 OCR 模型，支持关闭译名处理；优化设置界面与弹窗样式，修复弹窗崩溃，并将缓存限制为仅悬浮窗使用。"
+    },
+    {
+      "versionCode": 51,
+      "versionName": "3.0.10",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-05-06",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.10/app-release.apk",
+      "changelog": "修复模型缓存损坏导致的崩溃，修复前台服务崩溃与更新日志格式异常。"
+    },
+    {
+      "versionCode": 50,
+      "versionName": "3.0.9",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-04-28",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.9/app-release.apk",
+      "changelog": "优化气泡合并策略，提升翻译效果"
+    },
+    {
+      "versionCode": 48,
+      "versionName": "3.0.7",
+      "releaseChannel": "preview",
+      "releasedAt": "2026-04-26",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.7/app-release.apk",
+      "changelog": "继续优化阅读、导出与气泡编辑体验：支持集合导出和 PDF 章节书签，修复 PDF 导出错误、条漫模式图片裁切和气泡显示慢的问题；优化横向阅读翻页与划屏手势，修复气泡不跟随缩放的问题；新增最小文字密度限制；修复迁移文件夹后语言设置未迁移的问题。"
+    },
+    {
+      "versionCode": 46,
+      "versionName": "3.0.5",
+      "releaseChannel": "preview",
+      "releasedAt": "2026-04-21",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.5/app-release.apk",
+      "changelog": "继续优化阅读与编辑体验：普通阅读更名为横向阅读，修复横向阅读无法双指缩放、条漫模式缩放手势和滚动异常、气泡无法移动以及翻译完成后按钮未解锁等问题。"
+    },
+    {
+      "versionCode": 45,
+      "versionName": "3.0.4",
+      "releaseChannel": "preview",
+      "releasedAt": "2026-04-20",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.4/app-release.apk",
+      "changelog": "进一步优化稳定性与阅读体验：新增自动重试次数设置，支持条漫双击放大，修复图片不居中、后台翻译卡进度以及无法取消翻译等问题。"
+    },
+    {
+      "versionCode": 44,
+      "versionName": "3.0.3",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-04-16",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.3/app-release.apk",
+      "changelog": "V3更新之后的稳定版，修复了图片无法放大问题，采用双击进入放大状态。修复异形气泡显示异常问题"
+    },
+    {
+    "versionCode": 43,
+    "versionName": "3.0.2",
+    "releaseChannel": "stable",
+    "releasedAt": "2026-04-16",
+    "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v3.0.2/app-release.apk",
+    "changelog": "3.0.2 为大版本整合更新，推荐更新：重构翻译策略，改用 JSON 解析气泡并移除旧嵌字流程，新增气泡透明度调整，支持文件夹集合队列翻译和首页多选一键翻译多个文件夹，优化气泡框与整体 UI，并修复 VL 直译缓存语言硬编码、错误弹窗显示/崩溃等一批问题。"
+    },
+    {
+      "versionCode": 39,
+      "versionName": "2.4.1",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-04-10",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.4.1/app-release.apk",
+      "changelog": "新增 AI 配置快捷切换，支持 PDF 导入导出和 AVIF 格式导入翻译，新增取消翻译与条漫状态可编辑功能，支持自动重载条漫/普通模式，修复悬浮窗排版并优化 ZIP 导入兼容性。"
+    },
+    {
+      "versionCode": 38,
+      "versionName": "2.4.0",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-04-06",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.4.0/app-release.apk",
+      "changelog": "悬浮窗新增英语韩语，新增文件夹集合以及多文件夹导入"
+    },
+    {
+      "versionCode": 37,
+      "versionName": "2.3.13",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-04-01",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.13/app-release.apk",
+      "changelog": "新增韩语翻译支持。修复鸿蒙设备悬浮窗相关问题，优化部分UI细节。"
+    },
+    {
+      "versionCode": 36,
+      "versionName": "2.3.12",
+      "releaseChannel": "preview",
+      "releasedAt": "2026-03-30",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.12/app-release.apk",
+      "changelog": "新增悬浮窗手势自定义，优化软件交互"
+    },
+    {
+      "versionCode": 35,
+      "versionName": "2.3.11",
+      "releaseChannel": "stable",
+      "releasedAt": "2026-03-23",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.11/app-release.apk",
+      "changelog": "普通模式新增VL直译。悬浮窗翻译新增校对模式、划屏翻译和划屏后自动关闭翻译功能，并优化超时设置。修复VL模型整气泡翻译解析错误、悬浮窗自动清屏不生效等问题，优化部分UI样式。"
+    },
+    {
+      "versionName": "2.3.10",
+      "releasedAt": "2026-03-23",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.10/app-release.apk",
+      "changelog": "修复部分机型启动后系统弹窗滚动条导致的闪退（恶性bug）"
+    },
+    {
+      "versionName": "2.3.9",
+      "releasedAt": "2026-03-22",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.9/app-release.apk",
+      "changelog": "修复错误弹窗导致的反复崩溃，优化多线程嵌字，修复悬浮窗翻译闪退。修复下载更新按钮不出现的问题（旧版本请前往 https://github.com/jedzqer/manga-translator-android/releases 手动更新）"
+    },
+    {
+      "versionName": "2.3.8",
+      "releasedAt": "2026-03-20",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.8/app-release.apk",
+      "changelog": "优化UI，优化动画，添加自定义AI参数功能"
+    },
+    {
+      "versionName": "2.3.7",
+      "releasedAt": "2026-03-19",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.7/app-release.apk",
+      "changelog": "新增翻页动画、悬浮窗气泡编辑功能，优化UI，提升软件稳定性，修复了一些bug，将EhViewer导入改为通用导入"
+    },
+    {
+      "versionName": "2.3.5",
+      "releasedAt": "2026-03-18",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.5/app-release.apk",
+      "changelog": "支持繁体中文，优化模型多选界面，支持Gemini格式"
+    },
+    {
+      "versionName": "2.3.4",
+      "releasedAt": "2026-03-08",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.4/app-release.apk",
+      "changelog": "重构UI界面（建议更新），优化嵌字效果"
+    },
+    {
+      "versionName": "2.3.3",
+      "releasedAt": "2026-03-08",
+      "apkUrl": "https://github.com/jedzqer/manga-translator-android/releases/download/v2.3.3/app-release.apk",
+      "changelog": "悬浮窗翻译支持VL模型一步翻译，跳过OCR、支持翻译缓存，相似内容复用翻译结果、支持轮询API"
+    },
+    {
+      "versionName": "2.3.2",
+      "releasedAt": "2026-03-08",
+      "changelog": "优化了一些体验细节（也有可能是负面优化）"
+    },
+    {
+      "versionName": "2.3.1",
+      "releasedAt": "2026-03-07",
+      "changelog": "大幅优化悬浮窗翻译交互"
+    },
+    {
+      "versionName": "2.3.0",
+      "releasedAt": "2026-02-25",
+      "changelog": "新增悬浮窗翻译功能，优化了一些细节"
+    },
+    {
+      "versionName": "2.2.4",
+      "releasedAt": "2026-02-25",
+      "changelog": "新增API OCR，支持多语言到中文翻译，只要API OCR和翻译模型支持该语言。大幅优化视觉效果"
+    },
+    {
+      "versionName": "2.2.3",
+      "releasedAt": "2026-02-24",
+      "changelog": "优化嵌字效果；自适应使用竖向排版符号；优化了一些体验细节"
+    },
+    {
+      "versionName": "2.2.2",
+      "releasedAt": "2026-02-10",
+      "changelog": "修复 CBZ 无法导入 bug"
+    },
+    {
+      "versionName": "2.2.1",
+      "releasedAt": "2026-02-10",
+      "changelog": "新增嵌字功能，嵌字前建议先使用新版本重新翻译漫画"
+    },
+    {
+      "versionName": "2.2.0",
+      "releasedAt": "2026-02-09",
+      "changelog": "添加一键分享错误日志，新增CBZ格式导入导出，支持多模型分流，添加国内镜像"
+    },
+    {
+      "versionName": "2.1.0",
+      "releasedAt": "2026-02-08",
+      "changelog": "大更新，优化编辑模式气泡交互体验，增加导出速度，优化了大量体验细节。"
+    },
+    {
+      "versionName": "2.0.0",
+      "releasedAt": "2026-01-22",
+      "changelog": "新增英文支持。新增气泡编辑功能，用户可以通过创建空白气泡，重新识别翻译没能识别的区域（具体方法查看软件教程）。新增漫画导出功能。"
+    },
+    {
+      "versionName": "1.3.4",
+      "releasedAt": "2026-01-19",
+      "changelog": "修复了边翻译边阅读时的闪退bug。"
+    },
+    {
+      "versionName": "1.3.3",
+      "releasedAt": "2026-01-18",
+      "changelog": "添加了一些可供调整的API参数，以改善翻译质量。"
+    },
+    {
+      "versionName": "1.3.2",
+      "releasedAt": "2026-01-16",
+      "changelog": "添加API超时设置，将普通翻译也改为整页翻译。"
+    },
+    {
+      "versionName": "1.3.1",
+      "releasedAt": "2026-01-16",
+      "changelog": "全文速译会跳过已经提取译名的图片，支持漫画图片缩放与等高显示，更新了软件图标。"
+    },
+    {
+      "versionName": "1.3.0",
+      "releasedAt": "2026-01-15",
+      "changelog": "优化性能，修复若干bug，添加主题系统，添加点击图片文件名跳转阅读功能。"
+    },
+    {
+      "versionName": "1.2.1",
+      "releasedAt": "2026-01-14",
+      "changelog": "真正修复了总是提示更新的错误，建议更新。修复了分享日志闪退的bug。"
+    },
+    {
+      "versionName": "1.2.0",
+      "releasedAt": "2026-01-14",
+      "changelog": "修复了总是提示更新的错误，尝试修复了不翻译的问题，完善了翻译效果，可以翻译非文字气泡内容，加强了翻译时的后台保活和进度保存。"
+    },
+    {
+      "versionName": "1.1.0",
+      "releasedAt": "2026-01-12",
+      "changelog": "支持HTTP，添加教程页面，优化了体验细节。"
+    },
+    {
+      "versionName": "1.0.0",
+      "releasedAt": "2026-01-11",
+      "changelog": "正式版更新，添加通知显示，新增全文速译、重译功能，新增并发翻译，添加从EhViewer的下载目录中导入漫画的功能（其实也可以从其它可访问目录导入）"
+    }
+  ]
+}
