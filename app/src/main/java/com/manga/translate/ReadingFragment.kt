@@ -1236,14 +1236,32 @@ class ReadingFragment : Fragment() {
 
     private suspend fun reloadCurrentImageTranslation(imageFile: java.io.File) {
         if (currentImageFile?.absolutePath != imageFile.absolutePath) return
-        val translation = withContext(Dispatchers.IO) {
+        var translation = withContext(Dispatchers.IO) {
             loadValidTranslationForCurrentFolder(imageFile)
+        }
+        if (translation == null) {
+            translation = generateTranslationForCurrentImage(imageFile)
         }
         if (currentImageFile?.absolutePath != imageFile.absolutePath) return
         currentTranslation = translation
         binding.readingImage.post {
             updateOverlay(translation, currentBitmap)
         }
+    }
+
+    private suspend fun generateTranslationForCurrentImage(imageFile: java.io.File): TranslationResult? {
+        val folder = readingSessionViewModel.currentFolder.value ?: return null
+        if (!translationPipeline.isLocalModelReady()) return null
+        val generated = translationPipeline.translateImage(
+            imageFile = imageFile,
+            glossary = mutableMapOf(),
+            forceOcr = false,
+            language = preferencesGateway.getTranslationLanguage(folder),
+            providerContext = null,
+            onProgress = { }
+        ) ?: return null
+        translationPipeline.saveResult(imageFile, generated)
+        return generated
     }
 
     private fun loadValidTranslationForCurrentFolder(imageFile: java.io.File): TranslationResult? {

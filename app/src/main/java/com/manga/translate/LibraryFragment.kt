@@ -397,7 +397,9 @@ class LibraryFragment : Fragment() {
         binding.floatingTranslateButton.setOnClickListener {
             (activity as? MainActivity)?.switchToTab(MainPagerAdapter.SETTINGS_INDEX)
         }
-        binding.tutorialButton.setOnClickListener { handleFloatingTranslateClick() }
+        binding.tutorialButton.setOnClickListener {
+            (activity as? MainActivity)?.switchToTab(MainPagerAdapter.GENERAL_TASK_INDEX)
+        }
         binding.libraryImportFolderButton.setOnClickListener { importFromEhViewer() }
         binding.libraryImportArchiveButton.setOnClickListener {
             pickArchiveOrPdfFile.launch(
@@ -436,6 +438,7 @@ class LibraryFragment : Fragment() {
         binding.folderFullTranslateInfo.setOnClickListener { showFullTranslateInfo() }
         binding.folderLanguageSetting.setOnClickListener { showLanguageSettingDialog() }
         binding.folderReadingModeButton.setOnClickListener { showFolderReadingModeDialog() }
+        binding.libraryTranslateSelected.visibility = View.GONE
         binding.folderFullTranslateSwitch.setOnCheckedChangeListener { _, isChecked ->
             currentFolder?.let { folder ->
                 preferencesGateway.setFullTranslateEnabled(folder, isChecked)
@@ -1321,9 +1324,7 @@ class LibraryFragment : Fragment() {
                 return
             }
             val startIndex = readingProgressStore.load(folder)
-            val readingMode = preferencesGateway.getReadingMode(folder)
-            readingSessionViewModel.setFolder(folder, images, startIndex, readingMode)
-            (activity as? MainActivity)?.switchToTab(MainPagerAdapter.READING_INDEX)
+            launchReadingActivity(folder, startIndex)
             return
         }
         val images = repository.listImages(folder)
@@ -1333,9 +1334,7 @@ class LibraryFragment : Fragment() {
         }
         AppLogger.log("Library", "Start reading ${folder.name}, ${images.size} images")
         val startIndex = readingProgressStore.load(folder)
-        val readingMode = preferencesGateway.getReadingMode(folder)
-        readingSessionViewModel.setFolder(folder, images, startIndex, readingMode)
-        (activity as? MainActivity)?.switchToTab(MainPagerAdapter.READING_INDEX)
+        launchReadingActivity(folder, startIndex)
     }
 
     private fun openImageInReader(imageFile: File) {
@@ -1349,9 +1348,18 @@ class LibraryFragment : Fragment() {
         val startIndex = images.indexOfFirst { it.absolutePath == imageFile.absolutePath }
         if (startIndex < 0) return
         AppLogger.log("Library", "Open image ${imageFile.name} at index $startIndex in ${folder.name}")
-        val readingMode = preferencesGateway.getReadingMode(folder)
-        readingSessionViewModel.setFolder(folder, images, startIndex, readingMode)
-        (activity as? MainActivity)?.switchToTab(MainPagerAdapter.READING_INDEX)
+        launchReadingActivity(folder, startIndex)
+    }
+
+    private fun launchReadingActivity(folder: File, startIndex: Int) {
+        startActivity(
+            ReadingActivity.createIntent(
+                context = requireContext(),
+                folder = folder,
+                startIndex = startIndex,
+                readingMode = FolderReadingMode.STANDARD
+            )
+        )
     }
 
     private fun showFullTranslateInfo() {
@@ -1444,20 +1452,18 @@ class LibraryFragment : Fragment() {
 
     private fun updateFolderContentMode(folder: File) {
         val isCollection = repository.isCollectionFolder(folder)
-        val useParentCollectionSettings =
-            repository.resolveSettingsFolder(folder).absolutePath != folder.absolutePath
         binding.folderAddImages.visibility = if (isCollection) View.GONE else View.VISIBLE
         binding.folderRead.visibility = if (isCollection) View.GONE else View.VISIBLE
         binding.folderCollectionActions.visibility = if (isCollection) View.VISIBLE else View.GONE
-        binding.folderExport.visibility = if (isCollection) View.GONE else View.VISIBLE
-        binding.folderTranslate.visibility = if (isCollection) View.GONE else View.VISIBLE
-        binding.folderTranslationSettings.visibility =
-            if (useParentCollectionSettings) View.GONE else View.VISIBLE
-        binding.folderReadingSettings.visibility =
-            if (useParentCollectionSettings) View.GONE else View.VISIBLE
+        binding.folderExportCollection.visibility = View.GONE
+        binding.folderTranslateCollection.visibility = View.GONE
+        binding.folderExport.visibility = View.GONE
+        binding.folderTranslate.visibility = View.GONE
+        binding.folderTranslationSettings.visibility = View.GONE
+        binding.folderReadingSettings.visibility = View.GONE
         binding.folderSelectionActions.visibility = View.GONE
         binding.folderRenameSelected.visibility = View.GONE
-        binding.folderRetranslateSelected.visibility = if (isCollection) View.GONE else View.VISIBLE
+        binding.folderRetranslateSelected.visibility = View.GONE
         if (isCollection) {
             selectionController.exitSelectionMode()
         }

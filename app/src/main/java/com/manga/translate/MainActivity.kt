@@ -75,16 +75,9 @@ class MainActivity : AppCompatActivity() {
 
         pagerAdapter = MainPagerAdapter(this)
         binding.mainPager.adapter = pagerAdapter
-        binding.mainPager.isUserInputEnabled =
-            binding.mainPager.currentItem != MainPagerAdapter.READING_INDEX
         TabLayoutMediator(binding.mainTabs, binding.mainPager) { tab, position ->
             tab.setText(pagerAdapter.getTitleRes(position))
         }.attach()
-        binding.mainPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                binding.mainPager.isUserInputEnabled = position != MainPagerAdapter.READING_INDEX
-            }
-        })
         observeGlobalProgress()
         requestNotificationPermissionIfNeeded()
         maybeShowCrashDialog()
