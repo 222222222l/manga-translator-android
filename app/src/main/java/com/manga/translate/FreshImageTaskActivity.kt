@@ -64,37 +64,46 @@ class FreshImageTaskActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_fresh_image_task)
+        AppLogger.log("DebugChat", "FreshImageTaskActivity onCreate start")
+        runCatching {
+            setContentView(R.layout.activity_fresh_image_task)
 
-        pipeline = TranslationPipeline(applicationContext)
-        settingsStore = SettingsStore(applicationContext)
-        statusView = findViewById(R.id.fresh_image_task_status)
-        promptInput = findViewById(R.id.fresh_image_task_prompt_input)
-        messagesScroll = findViewById(R.id.fresh_image_task_messages_scroll)
-        messagesContainer = findViewById(R.id.fresh_image_task_messages_container)
-        selectedImageCard = findViewById(R.id.fresh_image_task_selected_card)
-        selectedImageView = findViewById(R.id.fresh_image_task_selected_image)
-        selectedImageLabel = findViewById(R.id.fresh_image_task_selected_label)
+            pipeline = TranslationPipeline(applicationContext)
+            settingsStore = SettingsStore(applicationContext)
+            statusView = findViewById(R.id.fresh_image_task_status)
+            promptInput = findViewById(R.id.fresh_image_task_prompt_input)
+            messagesScroll = findViewById(R.id.fresh_image_task_messages_scroll)
+            messagesContainer = findViewById(R.id.fresh_image_task_messages_container)
+            selectedImageCard = findViewById(R.id.fresh_image_task_selected_card)
+            selectedImageView = findViewById(R.id.fresh_image_task_selected_image)
+            selectedImageLabel = findViewById(R.id.fresh_image_task_selected_label)
 
-        statusView.text = getString(R.string.debug_chat_hint)
-        promptInput.setText(settingsStore.loadImageTaskCustomPrompt())
-        renderSelectedImage()
-        appendWelcomeCard()
-
-        findViewById<Button>(R.id.fresh_image_task_pick_button).setOnClickListener {
-            pickImageLauncher.launch("image/*")
-        }
-        findViewById<Button>(R.id.fresh_image_task_clear_image_button).setOnClickListener {
-            clearSelectedImage()
-        }
-        findViewById<Button>(R.id.fresh_image_task_clear_chat_button).setOnClickListener {
-            turns.clear()
-            messagesContainer.removeAllViews()
+            statusView.text = getString(R.string.debug_chat_hint)
+            promptInput.setText(settingsStore.loadImageTaskCustomPrompt())
+            renderSelectedImage()
             appendWelcomeCard()
-            statusView.text = getString(R.string.debug_chat_cleared)
-        }
-        findViewById<Button>(R.id.fresh_image_task_send_button).setOnClickListener {
-            submitTurn()
+
+            findViewById<Button>(R.id.fresh_image_task_pick_button).setOnClickListener {
+                pickImageLauncher.launch("image/*")
+            }
+            findViewById<Button>(R.id.fresh_image_task_clear_image_button).setOnClickListener {
+                clearSelectedImage()
+            }
+            findViewById<Button>(R.id.fresh_image_task_clear_chat_button).setOnClickListener {
+                turns.clear()
+                messagesContainer.removeAllViews()
+                appendWelcomeCard()
+                statusView.text = getString(R.string.debug_chat_cleared)
+            }
+            findViewById<Button>(R.id.fresh_image_task_send_button).setOnClickListener {
+                submitTurn()
+            }
+        }.onSuccess {
+            AppLogger.log("DebugChat", "FreshImageTaskActivity onCreate ready")
+        }.onFailure { error ->
+            AppLogger.error("DebugChat", "FreshImageTaskActivity onCreate failed", error)
+            Toast.makeText(this, error.message ?: "调试聊天初始化失败", Toast.LENGTH_LONG).show()
+            finish()
         }
     }
 

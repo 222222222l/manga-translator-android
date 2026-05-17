@@ -7,21 +7,16 @@ class LocalVlmClient {
         private var libraryLoaded = false
 
         @Volatile
-        private var libraryLoadError: Throwable? = null
+        private var libraryLoadAttempted = false
 
-        init {
-            runCatching {
-                System.loadLibrary("minicpm_v_jni")
-            }.onSuccess {
-                libraryLoaded = true
-            }.onFailure { error ->
-                libraryLoadError = error
-                AppLogger.error("LocalVlmClient", "Failed to load minicpm_v_jni", error)
-            }
-        }
+        @Volatile
+        private var libraryLoadError: Throwable? = null
     }
 
-    fun isLibraryAvailable(): Boolean = libraryLoaded
+    fun isLibraryAvailable(): Boolean {
+        loadLibraryIfNeeded()
+        return libraryLoaded
+    }
 
     fun getLibraryLoadErrorMessage(): String? {
         val error = libraryLoadError ?: return null
@@ -43,7 +38,22 @@ class LocalVlmClient {
         return nativeProcessImage(imageBytes, prompt)
     }
 
+    @Synchronized
+    private fun loadLibraryIfNeeded() {
+        if (libraryLoaded || libraryLoadAttempted) return
+        libraryLoadAttempted = true
+        runCatching {
+            System.loadLibrary("minicpm_v_jni")
+        }.onSuccess {
+            libraryLoaded = true
+        }.onFailure { error ->
+            libraryLoadError = error
+            AppLogger.error("LocalVlmClient", "Failed to load minicpm_v_jni", error)
+        }
+    }
+
     private fun ensureLibraryLoaded() {
+        loadLibraryIfNeeded()
         if (libraryLoaded) return
         throw IllegalStateException(
             getLibraryLoadErrorMessage()

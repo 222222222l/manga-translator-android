@@ -102,6 +102,9 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 将 `FreshImageTaskActivity` 重构为系统化 debug chatbot：支持输入提示词、上传图片、多轮对话，并在每轮消息中直接展示最终回答、`used prompt`、`raw output`、`normalized output`、耗时和错误信息，交互方式向官方 MiniCPM Android demo 靠拢。
 - [x] 为 debug chatbot 补齐运行日志闭环：图片载入、每轮提交、推理开始/结束、图片字节数、异常信息都会写入 `AppLogger`，便于真机“秒失败/秒退”后回看具体卡在模型初始化、图片编码还是 `processImage()` 推理。
 - [x] 完成本轮可安装版本递增：已将 `versionCode/versionName` 更新到 `59 / 3.1.3`，避免每次真机验证都重复卸载旧包。
+- [x] 本地构建排障已压缩收口：当前 `keystore.jks` 固定签名已生效，真机可覆盖安装；本地手动 `:app:assembleDebug` 已完整执行到 `packageDebug/createDebugApkListingFileRedirect/assembleDebug`，说明当前主矛盾已从“构建链”切换为“debug chatbot 运行时闪退”。
+- [x] 对 debug chatbot 启动路径做最小化防御：将 `LocalVlmClient` 的 `System.loadLibrary("minicpm_v_jni")` 从类初始化期改为首次真实推理时懒加载，并为 `FreshImageTaskActivity.onCreate()` 补齐启动日志与初始化异常降级，优先验证闪退是否由聊天页打开瞬间提前触发 native 库加载导致。
+- [ ] 下一步只聚焦运行时：若聊天页仍闪退，优先抓取 `AppLogger` 或真机 logcat，确认是 Java 层初始化异常，还是 `minicpm_v_jni` / 依赖 `.so` 在页面打开阶段发生 native 级崩溃。
 
 ---
 *文档生成于：2026-05-17*
