@@ -28,6 +28,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.google.android.material.snackbar.Snackbar
 import com.manga.translate.databinding.FragmentLibraryBinding
 import com.manga.translate.di.appContainer
 import kotlinx.coroutines.delay
@@ -62,6 +63,7 @@ class LibraryFragment : Fragment() {
     private val ocrStore by lazy(LazyThreadSafetyMode.NONE) { appContainer.ocrStore }
     private val readingProgressStore by lazy(LazyThreadSafetyMode.NONE) { appContainer.readingProgressStore }
     private val settingsStore by lazy(LazyThreadSafetyMode.NONE) { appContainer.settingsStore }
+    private val vlmModelManager by lazy(LazyThreadSafetyMode.NONE) { VlmModelManager(requireContext()) }
     private val dialogs = LibraryDialogs()
 
     private val prefs by lazy(LazyThreadSafetyMode.NONE) { appContainer.libraryPrefs }
@@ -83,11 +85,6 @@ class LibraryFragment : Fragment() {
     private val pendingModelErrorDialogs = ArrayDeque<PendingModelErrorDialog>()
     private var activeModelErrorDialog: AlertDialog? = null
     private var activeModelErrorRequest: PendingModelErrorDialog? = null
-
-    private val tutorialUrlGithub =
-        "https://github.com/jedzqer/manga-translator/blob/main/Tutorial/简中教程.md"
-    private val tutorialUrlGitee =
-        "https://gitee.com/jedzqer/manga-translator/blob/main/Tutorial/简中教程.md"
 
     private val folderAdapter = LibraryFolderAdapter(
         onClick = { openFolder(it.folder) },
@@ -272,6 +269,16 @@ class LibraryFragment : Fragment() {
         }
     }
 
+    private val importTextModelLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { handleModelImport(it, false) }
+        }
+
+    private val importMmprojModelLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { handleModelImport(it, true) }
+        }
+
     private val pickExportTree = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
@@ -385,9 +392,14 @@ class LibraryFragment : Fragment() {
         setupFolderDetailScrollBehavior()
 
         binding.addFolderFab.setOnClickListener { showCreateEntryDialog() }
-        binding.importEhviewerButton.setOnClickListener { importFromEhViewer() }
-        binding.floatingTranslateButton.setOnClickListener { handleFloatingTranslateClick() }
-        binding.importCbzButton.setOnClickListener {
+        binding.importEhviewerButton.setOnClickListener { importTextModelLauncher.launch("*/*") }
+        binding.importCbzButton.setOnClickListener { importMmprojModelLauncher.launch("*/*") }
+        binding.floatingTranslateButton.setOnClickListener {
+            (activity as? MainActivity)?.switchToTab(MainPagerAdapter.SETTINGS_INDEX)
+        }
+        binding.tutorialButton.setOnClickListener { handleFloatingTranslateClick() }
+        binding.libraryImportFolderButton.setOnClickListener { importFromEhViewer() }
+        binding.libraryImportArchiveButton.setOnClickListener {
             pickArchiveOrPdfFile.launch(
                 arrayOf(
                     "application/vnd.comicbook+zip",
@@ -397,7 +409,6 @@ class LibraryFragment : Fragment() {
                 )
             )
         }
-        binding.tutorialButton.setOnClickListener { openTutorial() }
         binding.librarySelectAll.setOnClickListener { toggleSelectAllLibraryFolders() }
         binding.libraryTranslateSelected.setOnClickListener { translateSelectedLibraryFolders() }
         binding.libraryRenameSelected.setOnClickListener { renameSelectedLibraryFolder() }
@@ -478,7 +489,14 @@ class LibraryFragment : Fragment() {
 
     private fun handleFloatingTranslateClick() {
         if (!translationPipeline.isLocalModelReady()) {
-            Toast.makeText(requireContext(), R.string.floating_vl_model_required, Toast.LENGTH_LONG).show()
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.floating_model_required_title)
+                .setMessage(R.string.floating_model_required_message)
+                .setPositiveButton(R.string.open_settings_action) { _, _ ->
+                    (activity as? MainActivity)?.switchToTab(MainPagerAdapter.SETTINGS_INDEX)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .showWithScrollableMessage()
             return
         }
         if (canDrawOverlays()) {
@@ -899,30 +917,6 @@ class LibraryFragment : Fragment() {
         showFolderDetail(folder, parent)
     }
 
-    private fun openTutorial() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.tutorial_open_title)
-            .setMessage(R.string.tutorial_open_message)
-            .setPositiveButton(R.string.tutorial_open_mirror) { _, _ ->
-                openUrlOrToast(tutorialUrlGitee)
-            }
-            .setNegativeButton(R.string.tutorial_open_github) { _, _ ->
-                openUrlOrToast(tutorialUrlGithub)
-            }
-            .setNeutralButton(android.R.string.cancel, null)
-            .showWithScrollableMessage()
-    }
-
-    private fun openUrlOrToast(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-        val manager = requireContext().packageManager
-        if (intent.resolveActivity(manager) != null) {
-            startActivity(intent)
-        } else {
-            Toast.makeText(requireContext(), url, Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun showCreateEntryDialog() {
         dialogs.showCreateEntryDialog(
             context = requireContext(),
@@ -1019,6 +1013,29 @@ class LibraryFragment : Fragment() {
             scope = viewLifecycleOwner.lifecycleScope,
             onShowFolderList = { showFolderList() }
         )
+    }
+
+    private fun handleModelImport(uri: Uri, isMmproj: Boolean) {
+        lifecycleScope.launch {
+            val success = vlmModelManager.importModelFromUri(uri, isMmproj)
+            if (!isAdded || _binding == null) return@launch
+            if (success) {
+                Snackbar.make(
+                    binding.root,
+                    getString(
+                        if (isMmproj) {
+                            R.string.model_import_mmproj_success
+                        } else {
+                            R.string.model_import_text_success
+                        },
+                        vlmModelManager.getFileName(uri)
+                    ),
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            } else {
+                Snackbar.make(binding.root, R.string.model_import_failed, Snackbar.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun confirmDeleteFolder(folder: File) {

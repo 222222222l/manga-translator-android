@@ -6,13 +6,14 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 
 class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-    override fun getItemCount(): Int = 3
+    override fun getItemCount(): Int = 4
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
             0 -> LibraryFragment()
-            1 -> ReadingFragment()
-            else -> SettingsFragment()
+            1 -> GeneralTaskFragment()
+            2 -> ReadingHostFragment()
+            else -> SettingsHubFragment()
         }
     }
 
@@ -20,14 +21,16 @@ class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activi
     fun getTitleRes(position: Int): Int {
         return when (position) {
             0 -> R.string.tab_library
-            1 -> R.string.tab_reading
+            1 -> R.string.tab_general_task
+            2 -> R.string.tab_reading
             else -> R.string.tab_settings
         }
     }
 
     companion object {
         const val LIBRARY_INDEX = 0
-        const val READING_INDEX = 1
-        const val SETTINGS_INDEX = 2
+        const val GENERAL_TASK_INDEX = 1
+        const val READING_INDEX = 2
+        const val SETTINGS_INDEX = 3
     }
 }

@@ -36,6 +36,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 修复 `minicpm_v_jni.cpp` 与当前 `llama.cpp` API 漂移：切换到 `flash_attn_type`、`llama_memory_clear()` 与 `llama_token_to_piece()`。
 - [x] 根据最新 CI 原生日志修复 `mtmd` 链接失败：放弃修改 `llama.cpp` 子模块内部脚本，改为在父项目 [CMakeLists.txt](file:///e:/翻译/manga-translator-android/app/src/main/cpp/CMakeLists.txt) 中手工定义最小 `mtmd` 静态库，并关闭不必要的 `LLAMA_BUILD_COMMON/OPENSSL` 依赖。
 - [x] 根据最新 CI 原生日志修复 `ggml-cpu/llamafile/sgemm.cpp` 在 `armeabi-v7a` 上的 FP16 intrinsic 编译失败：显式关闭 `GGML_LLAMAFILE`，并将 Android ABI 收缩为 `arm64-v8a`，避免为端侧 VLM 构建无实际价值的 32 位包体。
+- [x] 根据本地 Windows 构建日志绕过 Android Gradle Plugin 的非 ASCII 路径拦截：在 `gradle.properties` 中启用 `android.overridePathCheck=true`，避免因工程目录位于 `E:\翻译\...` 而在插件应用阶段提前终止。
+- [x] 补齐本地 Android SDK 定位：已在 Android Studio 中安装 `API 35 / Build-Tools 35 / Platform-Tools / NDK / CMake`，本地 Gradle 构建已能自动补齐缺失组件并成功通过 `:app:compileDebugKotlin`。
 
 ### Phase 2: C++ 引擎层接入 (llama.cpp)
 - [x] 在 `app/src/main/cpp` 中引入 `llama.cpp` 源码（包含 `llava` 多模态扩展支持）。
@@ -64,12 +66,15 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 
 ### Phase 5: UX 体验增强
 - [ ] 增加流式解析回调：JNI 边生成 token 边解析，气泡逐个渲染。
-- [ ] 在悬浮球中增加“通用分析”模式，复用 `LocalVlmClient` 进行非格式化的自由对话。
+- [x] 新增顶部“通用任务”入口：增加标准 chatbot 风格的图文问答页，支持图片上传并复用本地 MiniCPM 推理链路返回自由文本回答。
+- [x] 重构首页快捷入口：移除原仓库教程链接，将首屏入口改为 LLM/mmproj 模型导入、模型设置与悬浮窗翻译，并把漫画目录/压缩包导入下沉到项目区卡片顶部。
 
 ### Phase 6: 运行稳定性收尾
 - [x] 继续清理仍指向旧 OCR / 远程 API 的悬浮球主检测与阅读页补偿入口，避免出现“界面可点但逻辑仍落到旧链路”的运行时闪退。
-- [ ] 为“未导入本地模型”“模型初始化失败”“模型输出为空”补齐统一前置提示，避免用户侧表现为“点击后没有任何反应”。
-- [ ] 基于真机日志继续修复剩余运行时崩溃，优先处理悬浮窗整页检测后的边界交互、阅读页编辑态和模型未命中时的提示闭环。
+- [x] 修复悬浮球空白气泡编辑确认流程中的 Kotlin 编译错误：去掉对已删除的旧重试/旧弹窗接口调用，并统一 `FloatingEmptyBubbleCoordinator` 与 `TranslationPipeline` 的可见性。
+- [x] 为“未导入本地模型”“模型初始化失败”“模型输出为空”补齐统一前置提示：悬浮窗入口和通用任务入口现在会在缺模型时直接跳转/提示到设置页，不再表现为静默失败。
+- [x] 用 `ReadingHostFragment` / `SettingsHubFragment` 替换高风险直接入口：顶部“阅读/设置”先进入轻量宿主页，避免在无阅读会话或旧设置树过重时直接触发闪退。
+- [ ] 基于真机日志继续修复剩余运行时崩溃，优先处理悬浮窗整页检测后的边界交互、阅读页编辑态和不同 ROM 下的录屏/悬浮权限链路。
 
 ---
 *文档生成于：2026-05-16*

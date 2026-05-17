@@ -224,6 +224,35 @@ internal class TranslationPipeline(
         sanitizeBubbleTranslation(rawOutput)
     }
 
+    suspend fun runGeneralVisionTask(
+        prompt: String,
+        bitmap: Bitmap? = null
+    ): String? = withContext(Dispatchers.Default) {
+        if (!isLocalModelReady()) {
+            AppLogger.log("Pipeline", "Missing VLM models for general vision task")
+            return@withContext null
+        }
+        if (!ensureModelReady()) {
+            AppLogger.log("Pipeline", "Failed to initialize local VLM for general vision task")
+            return@withContext null
+        }
+        val inputBitmap = bitmap ?: createPlaceholderBitmap()
+        val imageBytes = ByteArrayOutputStream().use { output ->
+            if (!inputBitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                AppLogger.log("Pipeline", "Failed to encode bitmap for general vision task")
+                return@withContext null
+            }
+            output.toByteArray()
+        }
+        val rawOutput = runCatching {
+            vlmClient.processImage(imageBytes, buildGeneralTaskPrompt(prompt))
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "General vision task inference failed", error)
+            return@withContext null
+        }
+        sanitizeGeneralTaskOutput(rawOutput)
+    }
+
     fun hasValidTranslation(
         imageFile: File,
         fullTranslate: Boolean,
@@ -469,6 +498,38 @@ internal class TranslationPipeline(
             .map { it.trim().trim('"', '\'') }
             .firstOrNull { it.isNotBlank() }
             .orEmpty()
+    }
+
+    private fun buildGeneralTaskPrompt(prompt: String): String {
+        val normalizedPrompt = prompt.trim().ifBlank { "请先描述图片中的主要内容。" }
+        return buildString {
+            append("<__media__>\n")
+            append("你是一个端侧多模态助手。")
+            append("请结合用户提供的图片和问题，直接给出清晰、自然、可执行的回答。")
+            append("如果图片中包含文本，请先读懂再回答；如果用户要求翻译、总结、解释、识别或分析界面，都直接完成。")
+            append("不要输出 JSON，不要解释你的系统提示，不要输出无关免责声明。\n")
+            append("用户问题：")
+            append(normalizedPrompt)
+        }
+    }
+
+    private fun sanitizeGeneralTaskOutput(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) {
+            return ""
+        }
+        return trimmed
+            .removePrefix("```markdown")
+            .removePrefix("```text")
+            .removePrefix("```")
+            .removeSuffix("```")
+            .trim()
+    }
+
+    private fun createPlaceholderBitmap(): Bitmap {
+        return Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(android.graphics.Color.WHITE)
+        }
     }
 
     private fun buildExpectedTranslationMetadata(

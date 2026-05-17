@@ -7,6 +7,7 @@
 
     <!-- Main Tabs -->
     <string name="tab_library">漫画库</string>
+    <string name="tab_general_task">通用任务</string>
     <string name="tab_reading">阅读</string>
     <string name="tab_settings">设置</string>
 
@@ -223,18 +224,24 @@
 
     <!-- Library / Entry -->
     <string name="library_quick_actions">快捷入口</string>
-    <string name="library_quick_actions_title">导入与工具</string>
+    <string name="library_quick_actions_title">模型加载与核心入口</string>
     <string name="library_collection_label">Collection</string>
     <string name="library_collection_title">漫画项目</string>
     <string name="library_action_panel_label">操作面板</string>
     <string name="library_translation_settings_hint">为当前文件夹单独配置翻译语言与全文速译策略。</string>
     <string name="library_pages_label">页面列表</string>
+    <string name="library_quick_import_text_model">导入 LLM</string>
+    <string name="library_quick_import_mmproj_model">导入 mmproj</string>
+    <string name="library_quick_model_settings">模型设置</string>
     <string name="tutorial_button">使用教程</string>
     <string name="tutorial_open_title">打开教程</string>
     <string name="tutorial_open_message">是否使用国内镜像打开教程？</string>
     <string name="tutorial_open_mirror">使用镜像站</string>
     <string name="tutorial_open_github">使用 GitHub</string>
     <string name="floating_translate_button">悬浮窗翻译</string>
+    <string name="floating_model_required_title">需要先导入模型</string>
+    <string name="floating_model_required_message">悬浮窗翻译已经切到本地 MiniCPM 链路。请先导入 LLM 和 mmproj 模型，再授予悬浮窗与录屏权限。</string>
+    <string name="open_settings_action">前往设置</string>
     <string name="overlay_permission_required_title">需要悬浮窗权限</string>
     <string name="overlay_permission_required_message">请先授予悬浮窗权限，才能启用悬浮球。</string>
     <string name="overlay_permission_failed_title">未获取到悬浮窗权限</string>
@@ -444,6 +451,9 @@
 
     <!-- Reading -->
     <string name="reading_empty">请选择一个文件夹开始阅读</string>
+    <string name="reading_host_empty_title">还没有正在阅读的漫画</string>
+    <string name="reading_host_empty_message">先从漫画库打开一个项目，阅读页会直接进入上次的阅读会话。</string>
+    <string name="reading_host_go_library">去漫画库</string>
     <string name="reading_page_info">%1$s  (%2$d/%3$d)</string>
     <string name="reading_edit_bubbles">编辑气泡</string>
     <string name="reading_confirm_edit">完成编辑</string>
@@ -505,4 +515,42 @@
     <string name="global_progress_done">%1$s 完成</string>
     <string name="global_progress_in_progress">%1$s中</string>
     <string name="global_progress_count">%1$s %2$d/%3$d</string>
+
+    <string name="settings_hub_title">本地模型与运行设置</string>
+    <string name="settings_hub_import_text_button">导入语言模型 (LLM)</string>
+    <string name="settings_hub_import_mmproj_button">导入视觉投影模型 (mmproj)</string>
+    <string name="settings_hub_threads_hint">CPU 线程数 (推荐 4)</string>
+    <string name="settings_hub_save_threads_button">保存线程设置</string>
+    <string name="settings_hub_usage_title">后续入口</string>
+    <string name="settings_hub_usage_message">通用任务页用于普通图文问答；漫画库首页负责悬浮窗启动和漫画项目导入。悬浮窗翻译需要同时满足：模型已导入、悬浮窗权限已允许、录屏权限已允许。</string>
+    <string name="settings_hub_open_general_task">打开通用任务</string>
+    <string name="settings_hub_open_library">返回漫画库</string>
+    <string name="model_status_ready">MiniCPM 模型已就绪，可以直接开始通用任务和悬浮翻译。</string>
+    <string name="model_status_missing">模型尚未完整导入，请先补齐 LLM 和 mmproj 文件。</string>
+    <string name="model_status_file_ready">%1$s 已导入，约 %2$d MB</string>
+    <string name="model_status_text_missing">语言模型 (LLM) 未导入</string>
+    <string name="model_status_mmproj_missing">视觉投影模型 (mmproj) 未导入</string>
+    <string name="model_import_text_success">LLM 导入成功：%1$s</string>
+    <string name="model_import_mmproj_success">mmproj 导入成功：%1$s</string>
+    <string name="model_import_failed">模型导入失败，请重试</string>
+    <string name="model_threads_saved">线程数已保存为 %1$d</string>
+
+    <string name="general_task_title">普通图文对话</string>
+    <string name="general_task_status_ready">模型已就绪，可以上传图片后直接提问。</string>
+    <string name="general_task_status_missing_model">还没有可用模型，请先到设置页导入 LLM 和 mmproj。</string>
+    <string name="general_task_status_running">正在调用本地模型…</string>
+    <string name="general_task_status_last_done">已完成本轮对话。</string>
+    <string name="general_task_welcome_message">这里是通用任务入口。你可以像普通 chatbot 一样提问，并按需附带图片，例如：翻译截图、解释页面、提取文案、总结图片内容。</string>
+    <string name="general_task_input_hint">输入你的问题，支持结合图片一起提问</string>
+    <string name="general_task_pick_image">选择图片</string>
+    <string name="general_task_send">发送</string>
+    <string name="general_task_selected_image">已选图片</string>
+    <string name="general_task_clear_image">移除图片</string>
+    <string name="general_task_empty_input">请先输入问题或选择一张图片</string>
+    <string name="general_task_default_prompt">请分析这张图片并给出直接回答。</string>
+    <string name="general_task_thinking">正在思考…</string>
+    <string name="general_task_failed">本次对话没有拿到有效结果，请检查模型是否完整导入，或换一张更清晰的图片再试。</string>
+    <string name="general_task_user_label">你</string>
+    <string name="general_task_assistant_label">MiniCPM</string>
+    <string name="general_task_user_with_image">%1$s\n\n[附带图片]</string>
 </resources>

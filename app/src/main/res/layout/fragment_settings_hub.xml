@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.manga.translate.SafeNestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:paddingStart="16dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_surface_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_hub_title"
+                android:textAppearance="@style/Widget.MangaTranslator.CardTitle" />
+
+            <TextView
+                android:id="@+id/settings_hub_status_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <TextView
+                android:id="@+id/settings_hub_text_model_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Button
+                android:id="@+id/settings_hub_import_text_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_import_text_button" />
+
+            <TextView
+                android:id="@+id/settings_hub_mmproj_model_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Button
+                android:id="@+id/settings_hub_import_mmproj_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_import_mmproj_button" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:hint="@string/settings_hub_threads_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/settings_hub_threads_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/settings_hub_save_threads_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_save_threads_button" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_surface_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_hub_usage_title"
+                android:textAppearance="@style/Widget.MangaTranslator.CardTitle" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_usage_message"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Button
+                android:id="@+id/settings_hub_open_general_task_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/settings_hub_open_general_task" />
+
+            <Button
+                android:id="@+id/settings_hub_open_library_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_open_library" />
+        </LinearLayout>
+
+    </LinearLayout>
+</com.manga.translate.SafeNestedScrollView>

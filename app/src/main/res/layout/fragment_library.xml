@@ -85,7 +85,7 @@
                             android:minHeight="0dp"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
-                            android:text="@string/import_ehviewer"
+                            android:text="@string/library_quick_import_text_model"
                             android:textAlignment="viewStart"
                             android:textAllCaps="false"
                             app:layout_constraintEnd_toStartOf="@id/import_cbz_button"
@@ -103,7 +103,7 @@
                             android:minHeight="0dp"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
-                            android:text="@string/import_cbz"
+                            android:text="@string/library_quick_import_mmproj_model"
                             android:textAlignment="viewStart"
                             android:textAllCaps="false"
                             app:layout_constraintEnd_toEndOf="parent"
@@ -121,7 +121,7 @@
                             android:minHeight="0dp"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
-                            android:text="@string/floating_translate_button"
+                            android:text="@string/library_quick_model_settings"
                             android:textAlignment="viewStart"
                             android:textAllCaps="false"
                             app:layout_constraintEnd_toStartOf="@id/tutorial_button"
@@ -139,7 +139,7 @@
                             android:minHeight="0dp"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
-                            android:text="@string/tutorial_button"
+                            android:text="@string/floating_translate_button"
                             android:textAlignment="viewStart"
                             android:textAllCaps="false"
                             app:layout_constraintBottom_toBottomOf="parent"
@@ -171,6 +171,29 @@
                         android:layout_marginTop="6dp"
                         android:text="@string/library_collection_title"
                         android:textAppearance="@style/Widget.MangaTranslator.CardTitle" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/library_import_folder_button"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:text="@string/import_ehviewer" />
+
+                        <Button
+                            android:id="@+id/library_import_archive_button"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="@string/import_cbz" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/library_selection_actions"
