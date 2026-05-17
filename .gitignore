@@ -6,7 +6,6 @@ build/
 # Local configuration
 local.properties
 *.keystore
-keystore.jks
 
 # APK / AAB outputs
 *.apk

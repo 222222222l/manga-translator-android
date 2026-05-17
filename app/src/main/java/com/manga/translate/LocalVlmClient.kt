@@ -1,18 +1,59 @@
 package com.manga.translate
 
-import android.util.Log
-
 class LocalVlmClient {
 
     companion object {
+        @Volatile
+        private var libraryLoaded = false
+
+        @Volatile
+        private var libraryLoadError: Throwable? = null
+
         init {
-            System.loadLibrary("minicpm_v_jni")
+            runCatching {
+                System.loadLibrary("minicpm_v_jni")
+            }.onSuccess {
+                libraryLoaded = true
+            }.onFailure { error ->
+                libraryLoadError = error
+                AppLogger.error("LocalVlmClient", "Failed to load minicpm_v_jni", error)
+            }
         }
     }
 
-    external fun initModel(modelPath: String, mmprojPath: String, numThreads: Int): Boolean
-    
-    external fun freeModel()
+    fun isLibraryAvailable(): Boolean = libraryLoaded
 
-    external fun processImage(imageBytes: ByteArray, prompt: String): String
+    fun getLibraryLoadErrorMessage(): String? {
+        val error = libraryLoadError ?: return null
+        return "${error::class.java.simpleName}: ${error.message.orEmpty()}".trim()
+    }
+
+    fun initModel(modelPath: String, mmprojPath: String, numThreads: Int): Boolean {
+        ensureLibraryLoaded()
+        return nativeInitModel(modelPath, mmprojPath, numThreads)
+    }
+
+    fun freeModel() {
+        if (!libraryLoaded) return
+        nativeFreeModel()
+    }
+
+    fun processImage(imageBytes: ByteArray, prompt: String): String {
+        ensureLibraryLoaded()
+        return nativeProcessImage(imageBytes, prompt)
+    }
+
+    private fun ensureLibraryLoaded() {
+        if (libraryLoaded) return
+        throw IllegalStateException(
+            getLibraryLoadErrorMessage()
+                ?: "Native library minicpm_v_jni is not available."
+        )
+    }
+
+    private external fun nativeInitModel(modelPath: String, mmprojPath: String, numThreads: Int): Boolean
+
+    private external fun nativeFreeModel()
+
+    private external fun nativeProcessImage(imageBytes: ByteArray, prompt: String): String
 }

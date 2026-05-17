@@ -485,6 +485,13 @@ internal class TranslationPipeline(
 
     @Synchronized
     private fun ensureModelReady(): Boolean {
+        if (!vlmClient.isLibraryAvailable()) {
+            AppLogger.error(
+                "Pipeline",
+                "MiniCPM native library is unavailable: ${vlmClient.getLibraryLoadErrorMessage().orEmpty()}"
+            )
+            return false
+        }
         val textModelPath = vlmManager.textModelFile.absolutePath
         val mmprojModelPath = vlmManager.mmprojModelFile.absolutePath
         val maxThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
@@ -502,11 +509,16 @@ internal class TranslationPipeline(
             runCatching { vlmClient.freeModel() }
             modelInitialized = false
         }
-        val initialized = vlmClient.initModel(
-            textModelPath,
-            mmprojModelPath,
-            configuredThreads
-        )
+        val initialized = runCatching {
+            vlmClient.initModel(
+                textModelPath,
+                mmprojModelPath,
+                configuredThreads
+            )
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "Failed to initialize MiniCPM native model", error)
+            false
+        }
         modelInitialized = initialized
         if (initialized) {
             initializedTextModelPath = textModelPath
