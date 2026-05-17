@@ -10,7 +10,8 @@ android {
     val storePasswordProp = project.findProperty("STORE_PASSWORD") as String?
     val keyAliasProp = project.findProperty("KEY_ALIAS") as String?
     val keyPasswordProp = project.findProperty("KEY_PASSWORD") as String?
-    val hasSigning = !storeFilePath.isNullOrBlank() &&
+    val stableStoreFile = if (!storeFilePath.isNullOrBlank()) rootProject.file(storeFilePath) else null
+    val hasSigning = stableStoreFile?.exists() == true &&
         !storePasswordProp.isNullOrBlank() &&
         !keyAliasProp.isNullOrBlank() &&
         !keyPasswordProp.isNullOrBlank()
@@ -45,9 +46,9 @@ android {
         }
     }
 
-    val releaseSigning = if (hasSigning) {
-        signingConfigs.create("release") {
-            storeFile = rootProject.file(storeFilePath!!)
+    val stableSigning = if (hasSigning) {
+        signingConfigs.create("stable") {
+            storeFile = stableStoreFile
             storePassword = storePasswordProp
             keyAlias = keyAliasProp
             keyPassword = keyPasswordProp
@@ -57,11 +58,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (stableSigning != null) {
+                signingConfig = stableSigning
+            } else {
+                println("Stable signing is not configured. Debug build will use the default debug keystore.")
+            }
+        }
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            if (releaseSigning != null) {
-                signingConfig = releaseSigning
+            if (stableSigning != null) {
+                signingConfig = stableSigning
             } else {
                 println("Release signing is not configured. Set STORE_FILE/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD.")
             }
