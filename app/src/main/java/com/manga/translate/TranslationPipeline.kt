@@ -237,6 +237,81 @@ internal class TranslationPipeline(
         sanitizeGeneralTaskOutput(rawOutput)
     }
 
+    suspend fun runDebugVisionTask(
+        prompt: String,
+        bitmap: Bitmap? = null
+    ): DebugVisionTaskResult = withContext(Dispatchers.Default) {
+        val usedPrompt = buildGeneralTaskPrompt(prompt)
+        val startedAt = System.currentTimeMillis()
+        AppLogger.log(
+            "Pipeline",
+            "Debug vision task started hasImage=${bitmap != null} promptLength=${usedPrompt.length}"
+        )
+        if (!isLocalModelReady()) {
+            return@withContext DebugVisionTaskResult(
+                usedPrompt = usedPrompt,
+                rawOutput = "",
+                normalizedOutput = "",
+                elapsedMs = 0L,
+                modelReady = false,
+                errorMessage = "MiniCPM-V 端侧模型未导入，请前往模型中心配置。"
+            )
+        }
+        if (!ensureModelReady()) {
+            AppLogger.error("Pipeline", "Debug vision task model initialization failed")
+            return@withContext DebugVisionTaskResult(
+                usedPrompt = usedPrompt,
+                rawOutput = "",
+                normalizedOutput = "",
+                elapsedMs = System.currentTimeMillis() - startedAt,
+                modelReady = false,
+                errorMessage = "模型初始化失败，请检查模型文件与 mmproj 是否匹配。"
+            )
+        }
+        val inputBitmap = bitmap ?: createPlaceholderBitmap()
+        val imageBytes = ByteArrayOutputStream().use { output ->
+            if (!inputBitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                AppLogger.error("Pipeline", "Debug vision task failed to encode bitmap")
+                return@withContext DebugVisionTaskResult(
+                    usedPrompt = usedPrompt,
+                    rawOutput = "",
+                    normalizedOutput = "",
+                    elapsedMs = System.currentTimeMillis() - startedAt,
+                    modelReady = true,
+                    errorMessage = "图片编码失败。"
+                )
+            }
+            output.toByteArray()
+        }
+        AppLogger.log("Pipeline", "Debug vision task image bytes=${imageBytes.size}")
+        val rawOutput = runCatching {
+            vlmClient.processImage(imageBytes, usedPrompt)
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "Debug vision task inference failed", error)
+            return@withContext DebugVisionTaskResult(
+                usedPrompt = usedPrompt,
+                rawOutput = "",
+                normalizedOutput = "",
+                elapsedMs = System.currentTimeMillis() - startedAt,
+                modelReady = true,
+                errorMessage = "${error::class.java.simpleName}: ${error.message.orEmpty()}".trim()
+            )
+        }
+        val normalizedOutput = sanitizeGeneralTaskOutput(rawOutput)
+        AppLogger.log(
+            "Pipeline",
+            "Debug vision task finished elapsedMs=${System.currentTimeMillis() - startedAt} rawLength=${rawOutput.length} normalizedLength=${normalizedOutput.length}"
+        )
+        DebugVisionTaskResult(
+            usedPrompt = usedPrompt,
+            rawOutput = rawOutput,
+            normalizedOutput = normalizedOutput,
+            elapsedMs = System.currentTimeMillis() - startedAt,
+            modelReady = true,
+            errorMessage = if (rawOutput.isBlank()) "模型返回为空字符串。" else null
+        )
+    }
+
     suspend fun runStructuredImageTranslation(
         imageFile: File,
         language: TranslationLanguage = TranslationLanguage.JA_TO_ZH,
@@ -823,6 +898,15 @@ data class StructuredImageTranslationResult(
     val detectionRawOutput: String,
     val translationRawOutput: String,
     val detectedRegions: List<DetectedTextRegion>
+)
+
+data class DebugVisionTaskResult(
+    val usedPrompt: String,
+    val rawOutput: String,
+    val normalizedOutput: String,
+    val elapsedMs: Long,
+    val modelReady: Boolean,
+    val errorMessage: String? = null
 )
 
 data class OcrBubble(

@@ -99,6 +99,9 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 优化 MiniCPM 启动/生成参数以缓解 JSON 被截断：`n_ctx` 提升到 8192、图像评估 token 上限提升到 4096、生成 token 上限提升到 2048，并在每次请求前重置 sampler。
 - [x] 为便于覆盖安装保留同一签名并递增版本号：本轮已将 `versionCode/versionName` 更新到 `58 / 3.1.2`。
 - [x] 修复本地签名漂移：补齐项目根目录缺失的 `keystore.jks` 本地文件，并让 `debug/release` 在本地 keystore 存在时统一使用同一把证书签名；云端缺失 keystore 时则自动回退，避免 CI 被本地签名策略拖崩。
+- [x] 将 `FreshImageTaskActivity` 重构为系统化 debug chatbot：支持输入提示词、上传图片、多轮对话，并在每轮消息中直接展示最终回答、`used prompt`、`raw output`、`normalized output`、耗时和错误信息，交互方式向官方 MiniCPM Android demo 靠拢。
+- [x] 为 debug chatbot 补齐运行日志闭环：图片载入、每轮提交、推理开始/结束、图片字节数、异常信息都会写入 `AppLogger`，便于真机“秒失败/秒退”后回看具体卡在模型初始化、图片编码还是 `processImage()` 推理。
+- [x] 完成本轮可安装版本递增：已将 `versionCode/versionName` 更新到 `59 / 3.1.3`，避免每次真机验证都重复卸载旧包。
 
 ---
-*文档生成于：2026-05-16*
+*文档生成于：2026-05-17*
