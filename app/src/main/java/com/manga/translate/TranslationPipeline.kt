@@ -20,6 +20,12 @@ internal class TranslationPipeline(
 ) {
     @Volatile
     private var modelInitialized = false
+    @Volatile
+    private var initializedTextModelPath: String? = null
+    @Volatile
+    private var initializedMmprojModelPath: String? = null
+    @Volatile
+    private var initializedThreadCount: Int? = null
 
     suspend fun translateImage(
         imageFile: File,
@@ -340,17 +346,33 @@ internal class TranslationPipeline(
 
     @Synchronized
     private fun ensureModelReady(): Boolean {
-        if (modelInitialized) {
-            return true
-        }
+        val textModelPath = vlmManager.textModelFile.absolutePath
+        val mmprojModelPath = vlmManager.mmprojModelFile.absolutePath
         val maxThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         val configuredThreads = settingsStore.loadLocalVlmThreadCount().coerceIn(1, maxThreads)
+        if (
+            modelInitialized &&
+            initializedTextModelPath == textModelPath &&
+            initializedMmprojModelPath == mmprojModelPath &&
+            initializedThreadCount == configuredThreads
+        ) {
+            return true
+        }
+        if (modelInitialized) {
+            runCatching { vlmClient.freeModel() }
+            modelInitialized = false
+        }
         val initialized = vlmClient.initModel(
-            vlmManager.textModelFile.absolutePath,
-            vlmManager.mmprojModelFile.absolutePath,
+            textModelPath,
+            mmprojModelPath,
             configuredThreads
         )
         modelInitialized = initialized
+        if (initialized) {
+            initializedTextModelPath = textModelPath
+            initializedMmprojModelPath = mmprojModelPath
+            initializedThreadCount = configuredThreads
+        }
         return initialized
     }
 

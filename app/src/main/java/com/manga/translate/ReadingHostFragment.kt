@@ -30,10 +30,10 @@ class ReadingHostFragment : Fragment() {
             (activity as? MainActivity)?.switchToTab(MainPagerAdapter.LIBRARY_INDEX)
         }
         readingSessionViewModel.images.observe(viewLifecycleOwner) {
-            renderContent()
+            renderSafely()
         }
         readingSessionViewModel.currentFolder.observe(viewLifecycleOwner) {
-            renderContent()
+            renderSafely()
         }
     }
 
@@ -52,9 +52,22 @@ class ReadingHostFragment : Fragment() {
         val tag = "reading_content"
         val existing = childFragmentManager.findFragmentByTag(tag)
         if (existing != null) return
+        if (!isAdded || childFragmentManager.isStateSaved) return
         childFragmentManager.beginTransaction()
             .replace(R.id.reading_host_container, ReadingFragment(), tag)
-            .commitNowAllowingStateLoss()
+            .commitAllowingStateLoss()
+    }
+
+    private fun renderSafely() {
+        runCatching {
+            renderContent()
+        }.onFailure { error ->
+            AppLogger.log("ReadingHostFragment", "Failed to render reading host", error)
+            if (_binding != null) {
+                binding.readingHostPlaceholder.isVisible = true
+                binding.readingHostContainer.isGone = true
+            }
+        }
     }
 
     override fun onDestroyView() {

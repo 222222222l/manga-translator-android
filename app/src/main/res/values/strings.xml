@@ -230,8 +230,8 @@
     <string name="library_action_panel_label">操作面板</string>
     <string name="library_translation_settings_hint">为当前文件夹单独配置翻译语言与全文速译策略。</string>
     <string name="library_pages_label">页面列表</string>
-    <string name="library_quick_import_text_model">导入 LLM</string>
-    <string name="library_quick_import_mmproj_model">导入 mmproj</string>
+    <string name="library_quick_import_text_model">从自定义路径导入 LLM</string>
+    <string name="library_quick_import_mmproj_model">从自定义路径导入 mmproj</string>
     <string name="library_quick_model_settings">模型设置</string>
     <string name="tutorial_button">使用教程</string>
     <string name="tutorial_open_title">打开教程</string>
@@ -517,8 +517,12 @@
     <string name="global_progress_count">%1$s %2$d/%3$d</string>
 
     <string name="settings_hub_title">本地模型与运行设置</string>
-    <string name="settings_hub_import_text_button">导入语言模型 (LLM)</string>
-    <string name="settings_hub_import_mmproj_button">导入视觉投影模型 (mmproj)</string>
+    <string name="settings_hub_model_dir_label">默认下载目录</string>
+    <string name="settings_hub_precision_current">当前选中精度：%1$s</string>
+    <string name="settings_hub_download_text_button">自动下载当前精度 LLM</string>
+    <string name="settings_hub_import_text_button">从自定义路径导入 LLM</string>
+    <string name="settings_hub_download_mmproj_button">自动下载 mmproj</string>
+    <string name="settings_hub_import_mmproj_button">从自定义路径导入 mmproj</string>
     <string name="settings_hub_threads_hint">CPU 线程数 (推荐 4)</string>
     <string name="settings_hub_save_threads_button">保存线程设置</string>
     <string name="settings_hub_usage_title">后续入口</string>
@@ -529,11 +533,18 @@
     <string name="model_status_missing">模型尚未完整导入，请先补齐 LLM 和 mmproj 文件。</string>
     <string name="model_status_file_ready">%1$s 已导入，约 %2$d MB</string>
     <string name="model_status_text_missing">语言模型 (LLM) 未导入</string>
+    <string name="model_status_text_missing_with_precision">语言模型 (LLM) 未导入，当前目标精度：%1$s</string>
     <string name="model_status_mmproj_missing">视觉投影模型 (mmproj) 未导入</string>
     <string name="model_import_text_success">LLM 导入成功：%1$s</string>
     <string name="model_import_mmproj_success">mmproj 导入成功：%1$s</string>
     <string name="model_import_failed">模型导入失败，请重试</string>
     <string name="model_threads_saved">线程数已保存为 %1$d</string>
+    <string name="model_download_running">正在下载 %1$s 模型，请稍候…</string>
+    <string name="model_download_mmproj_running">正在下载 mmproj 模型，请稍候…</string>
+    <string name="model_download_text_success">%1$s 模型下载完成，已设为当前精度。</string>
+    <string name="model_download_mmproj_success">mmproj 模型下载完成。</string>
+    <string name="model_download_failed">模型下载失败，请检查网络或稍后重试。</string>
+    <string name="settings_hub_runtime_fallback">设置页初始化失败，已切换到保守模式。请先使用模型导入/下载功能后重试。</string>
 
     <string name="general_task_title">普通图文对话</string>
     <string name="general_task_status_ready">模型已就绪，可以上传图片后直接提问。</string>

@@ -50,6 +50,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
   - 新增 `MiniCPM-V 端侧模型` 设置大类。
   - 提供“导入语言模型 (LLM)”和“导入视觉映射模型 (mmproj)”的按钮。
   - 提供 CPU 线程数 (Threads) 自定义选项。
+- [x] 将本地模型目录统一收敛为应用专用 `/minicom-model`：设置页展示默认下载目录，并在 `VlmModelManager` 中新增 MiniCPM-V 4.6 的 `F16 / Q4_0 / Q6_K / Q8_0` 精度映射与 mmproj 固定下载链接。
+- [x] 为模型设置页补齐自动下载闭环：支持在设置页选择当前 LLM 精度、自动下载所选精度模型与 mmproj，并保留“从自定义路径导入 LLM/mmproj”入口。
 
 ### Phase 4: 核心翻译管线重构 (Translation Pipeline)
 - [x] 编写 `LocalVlmClient.kt`，封装 JNI 调用，替代原有的 OkHttp 远程调用逻辑。
@@ -74,6 +76,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 修复悬浮球空白气泡编辑确认流程中的 Kotlin 编译错误：去掉对已删除的旧重试/旧弹窗接口调用，并统一 `FloatingEmptyBubbleCoordinator` 与 `TranslationPipeline` 的可见性。
 - [x] 为“未导入本地模型”“模型初始化失败”“模型输出为空”补齐统一前置提示：悬浮窗入口和通用任务入口现在会在缺模型时直接跳转/提示到设置页，不再表现为静默失败。
 - [x] 用 `ReadingHostFragment` / `SettingsHubFragment` 替换高风险直接入口：顶部“阅读/设置”先进入轻量宿主页，避免在无阅读会话或旧设置树过重时直接触发闪退。
+- [x] 为顶部“阅读/设置”宿主页再加一层保守保护：阅读宿主页改为异步挂载 `ReadingFragment` 并在异常时回退到占位态，设置页的状态渲染与线程数保存改为 `runCatching` 包裹，降低真机切换 tab 时的直接崩溃概率。
+- [x] 修复模型切换后仍复用旧句柄的问题：`TranslationPipeline` 现在会在模型路径或线程数变化后释放旧 VLM 并重新初始化，保证精度切换与自动下载后的实际生效。
 - [ ] 基于真机日志继续修复剩余运行时崩溃，优先处理悬浮窗整页检测后的边界交互、阅读页编辑态和不同 ROM 下的录屏/悬浮权限链路。
 
 ---

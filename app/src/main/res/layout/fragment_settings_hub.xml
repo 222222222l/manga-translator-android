@@ -34,11 +34,45 @@
                 android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
 
             <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/settings_hub_model_dir_label"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <TextView
+                android:id="@+id/settings_hub_model_dir_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <TextView
+                android:id="@+id/settings_hub_precision_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Spinner
+                android:id="@+id/settings_hub_precision_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" />
+
+            <TextView
                 android:id="@+id/settings_hub_text_model_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
                 android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Button
+                android:id="@+id/settings_hub_download_text_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_download_text_button" />
 
             <Button
                 android:id="@+id/settings_hub_import_text_button"
@@ -53,6 +87,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
                 android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Button
+                android:id="@+id/settings_hub_download_mmproj_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_hub_download_mmproj_button" />
 
             <Button
                 android:id="@+id/settings_hub_import_mmproj_button"
