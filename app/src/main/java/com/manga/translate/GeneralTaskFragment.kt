@@ -214,7 +214,7 @@ class GeneralTaskFragment : Fragment() {
             text = title
         }
         val contentView = TextView(context).apply {
-            text = text
+            this.text = text
             setPadding(0, dp(context, 6), 0, 0)
         }
         bubble.addView(titleView)

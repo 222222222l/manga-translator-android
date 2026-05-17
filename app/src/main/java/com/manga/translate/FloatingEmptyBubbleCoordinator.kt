@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class FloatingEmptyBubbleCoordinator(
+internal class FloatingEmptyBubbleCoordinator(
     context: Context,
     private val settingsStore: SettingsStore,
     private val translationPipeline: TranslationPipeline

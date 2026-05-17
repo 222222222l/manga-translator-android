@@ -740,17 +740,15 @@ class FloatingBallOverlayService : Service() {
             try {
                 val floatingTimeoutMs =
                     settingsStore.loadFloatingTranslateApiSettings().timeoutSeconds * 1000
-                val outcome = executeWithModelResponseRetries("FloatingEdit") {
-                    emptyBubbleCoordinator.process(
-                        bitmap = bitmapSnapshot,
-                        baseTranslation = session,
-                        timeoutMs = floatingTimeoutMs,
-                        retryCount = FLOATING_TRANSLATE_RETRY_COUNT,
-                        floatPromptAsset = FLOAT_PROMPT_ASSET,
-                        floatVlPromptAsset = FLOAT_VL_PROMPT_ASSET,
-                        maxVlConcurrency = MAX_FLOATING_TASK_CONCURRENCY
-                    )
-                }
+                val outcome = emptyBubbleCoordinator.process(
+                    bitmap = bitmapSnapshot,
+                    baseTranslation = session,
+                    timeoutMs = floatingTimeoutMs,
+                    retryCount = FLOATING_TRANSLATE_RETRY_COUNT,
+                    floatPromptAsset = FLOAT_PROMPT_ASSET,
+                    floatVlPromptAsset = FLOAT_VL_PROMPT_ASSET,
+                    maxVlConcurrency = MAX_FLOATING_TASK_CONCURRENCY
+                )
                 withContext(Dispatchers.Main) {
                     if (outcome.requiresVlModel) {
                         showProgressStatus(R.string.floating_vl_model_required, autoHide = true)
@@ -780,19 +778,6 @@ class FloatingBallOverlayService : Service() {
                         R.string.overlay_empty_bubble_translated,
                         Toast.LENGTH_SHORT
                     ).show()
-                }
-            } catch (e: LlmResponseException) {
-                AppLogger.log("FloatingOCR", "Floating edit model response invalid", e)
-                withContext(Dispatchers.Main) {
-                    showModelErrorDialog(
-                        responseContent = e.responseContent,
-                        onContinue = { confirmEditSession() }
-                    )
-                }
-            } catch (e: LlmRequestException) {
-                AppLogger.log("FloatingOCR", "Floating edit request failed", e)
-                withContext(Dispatchers.Main) {
-                    showApiErrorDialog(e.errorCode, e.responseBody)
                 }
             } finally {
                 bitmapSnapshot.recycle()
@@ -987,7 +972,7 @@ class FloatingBallOverlayService : Service() {
                         floatPromptAsset = FLOAT_PROMPT_ASSET,
                         floatVlPromptAsset = FLOAT_VL_PROMPT_ASSET,
                         maxVlConcurrency = MAX_FLOATING_TASK_CONCURRENCY
-                    )?.translation ?: fullPageResult
+                    ).translation
                 } else {
                     fullPageResult
                 }
