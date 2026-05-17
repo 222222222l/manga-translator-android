@@ -66,18 +66,18 @@ class FreshImageTaskActivity : AppCompatActivity() {
             }
             lifecycleScope.launch {
                 statusView.text = getString(R.string.fresh_image_task_running)
-                val bitmap = withContext(Dispatchers.IO) { runImageTask(uri) }
-                if (bitmap == null) {
-                    statusView.text = getString(R.string.fresh_image_task_failed)
+                val outcome = withContext(Dispatchers.IO) { runImageTask(uri) }
+                if (outcome?.bitmap == null) {
+                    statusView.text = outcome?.status ?: getString(R.string.fresh_image_task_failed)
                 } else {
-                    resultView.setImageBitmap(bitmap)
-                    statusView.text = getString(R.string.fresh_image_task_done)
+                    resultView.setImageBitmap(outcome.bitmap)
+                    statusView.text = outcome.status
                 }
             }
         }
     }
 
-    private suspend fun runImageTask(uri: Uri): Bitmap? {
+    private suspend fun runImageTask(uri: Uri): ImageTaskOutcome? {
         val tempFile = File(cacheDir, "fresh_image_task_input.png")
         contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(tempFile).use { output -> input.copyTo(output) }
@@ -90,11 +90,22 @@ class FreshImageTaskActivity : AppCompatActivity() {
             language = TranslationLanguage.JA_TO_ZH,
             providerContext = null,
             onProgress = { }
-        ) ?: return null
-        return renderer.render(
+        ) ?: return ImageTaskOutcome(null, getString(R.string.fresh_image_task_failed))
+        if (result.bubbles.isEmpty()) {
+            return ImageTaskOutcome(null, getString(R.string.fresh_image_task_no_bubbles))
+        }
+        return ImageTaskOutcome(
+            bitmap = renderer.render(
             source = original,
             translation = result,
             verticalLayoutEnabled = !settingsStore.loadNormalBubbleRenderSettings().useHorizontalText
+            ),
+            status = getString(R.string.fresh_image_task_done)
         )
     }
+
+    private data class ImageTaskOutcome(
+        val bitmap: Bitmap?,
+        val status: String
+    )
 }

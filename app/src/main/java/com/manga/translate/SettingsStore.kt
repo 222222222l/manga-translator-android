@@ -1201,10 +1201,10 @@ class SettingsStore(context: Context) {
         private const val DEFAULT_OCR_API_TIMEOUT_SECONDS = 300
         private const val MIN_OCR_API_TIMEOUT_SECONDS = 30
         private const val MAX_OCR_API_TIMEOUT_SECONDS = 1200
-        private const val DEFAULT_LOCAL_VLM_THREAD_COUNT = 4
+        private const val DEFAULT_LOCAL_VLM_THREAD_COUNT = 2
         private const val DEFAULT_LOCAL_VLM_MODEL_PRECISION = "q4_0"
         private const val MIN_LOCAL_VLM_THREAD_COUNT = 1
-        private const val MAX_LOCAL_VLM_THREAD_COUNT = 8
+        private const val MAX_LOCAL_VLM_THREAD_COUNT = 2
         private const val DEFAULT_FLOATING_VL_TRANSLATE_CONCURRENCY = 1
         private const val MIN_FLOATING_VL_TRANSLATE_CONCURRENCY = 1
         private const val MAX_FLOATING_VL_TRANSLATE_CONCURRENCY = 16

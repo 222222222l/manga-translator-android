@@ -349,7 +349,8 @@ internal class TranslationPipeline(
         val textModelPath = vlmManager.textModelFile.absolutePath
         val mmprojModelPath = vlmManager.mmprojModelFile.absolutePath
         val maxThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-        val configuredThreads = settingsStore.loadLocalVlmThreadCount().coerceIn(1, maxThreads)
+        val configuredThreads = settingsStore.loadLocalVlmThreadCount()
+            .coerceIn(1, maxThreads.coerceAtMost(MAX_SAFE_RUNTIME_THREADS))
         if (
             modelInitialized &&
             initializedTextModelPath == textModelPath &&
@@ -594,6 +595,7 @@ internal class TranslationPipeline(
     }
 
     companion object {
+        private const val MAX_SAFE_RUNTIME_THREADS = 2
         private const val LOCAL_MODEL_NAME = "MiniCPM-V-4.6"
         private const val LOCAL_PROVIDER_ID = "local_minicpm_v"
         private const val LOCAL_API_FORMAT = "local"

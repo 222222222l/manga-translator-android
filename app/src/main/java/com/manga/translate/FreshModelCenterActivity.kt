@@ -92,7 +92,9 @@ class FreshModelCenterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             settingsStore.saveLocalVlmThreadCount(value)
-            statusView.text = getString(R.string.fresh_model_center_threads_saved, value)
+            val savedValue = settingsStore.loadLocalVlmThreadCount()
+            statusView.text = getString(R.string.fresh_model_center_threads_saved, savedValue)
+            threadsInput.setText(savedValue.toString())
         }
     }
 

@@ -92,6 +92,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 新建图像任务页 `FreshImageTaskActivity`：针对任意单张图片直接执行“识别 + 翻译 + 嵌字”闭环，不再走旧 chatbot/旧悬浮链路。
 - [x] 新建模型中心页 `FreshModelCenterActivity`：只保留精度选择、LLM/mmproj 下载导入和线程数设置。
 - [x] 新壳路径本地构建验证通过：` :app:compileDebugKotlin ` 与 ` :app:assembleDebug ` 已通过。
+- [x] 针对真机 `libminicpm_v_jni.so` 推理崩溃切换为稳定优先参数：关闭 GPU offload、关闭 flash attention、关闭 mtmd GPU，并将运行时线程数收紧到 2。
+- [x] 修正新阅读器/图像任务的成功判定：当模型返回空气泡结果时不再误报“已完成嵌字”，而是明确提示“模型已运行但未识别到有效文字区域”。
 
 ---
 *文档生成于：2026-05-16*

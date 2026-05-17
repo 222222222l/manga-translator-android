@@ -565,6 +565,7 @@
     <string name="fresh_reader_title_format">%1$s  第 %2$d/%3$d 页</string>
     <string name="fresh_reader_loading">正在加载并尝试自动翻译当前页…</string>
     <string name="fresh_reader_done">当前页已生成嵌字结果（%1$d/%2$d）</string>
+    <string name="fresh_reader_no_bubbles">模型已运行，但没有识别到可嵌字的气泡或文字。</string>
     <string name="fresh_reader_failed">当前页翻译失败，已显示原图。</string>
     <string name="fresh_reader_model_missing">模型未就绪，请先到模型中心导入或下载 LLM 与 mmproj。</string>
     <string name="fresh_reader_prev">上一页</string>
@@ -578,6 +579,7 @@
     <string name="fresh_image_task_no_image">请先选择一张图片。</string>
     <string name="fresh_image_task_selected">图片已选择，可以开始翻译。</string>
     <string name="fresh_image_task_running">正在执行本地多模态识别与嵌字…</string>
+    <string name="fresh_image_task_no_bubbles">模型已运行，但没有识别到可嵌字的文字区域。</string>
     <string name="fresh_image_task_failed">图像任务失败，请检查模型是否可用。</string>
     <string name="fresh_image_task_done">图像任务已完成，当前显示嵌字结果。</string>
     <string name="fresh_model_center_title">模型中心</string>

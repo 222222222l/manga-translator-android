@@ -133,7 +133,7 @@ class FreshReaderActivity : AppCompatActivity() {
         } else {
             null
         }
-        val rendered = translation?.let {
+        val rendered = translation?.takeIf { it.bubbles.isNotEmpty() }?.let {
             renderer.render(
                 source = original,
                 translation = it,
@@ -142,6 +142,7 @@ class FreshReaderActivity : AppCompatActivity() {
         }
         val status = when {
             rendered != null -> getString(R.string.fresh_reader_done, currentIndex + 1, pageFiles.size)
+            translation != null -> getString(R.string.fresh_reader_no_bubbles)
             !pipeline.isLocalModelReady() -> getString(R.string.fresh_reader_model_missing)
             else -> getString(R.string.fresh_reader_failed)
         }

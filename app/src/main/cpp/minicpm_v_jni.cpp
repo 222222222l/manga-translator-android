@@ -11,6 +11,8 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+static constexpr int MAX_SAFE_THREADS = 2;
+
 static llama_model * g_model = nullptr;
 static llama_context * g_lctx = nullptr;
 static mtmd_context * g_mtmd_ctx = nullptr;
@@ -26,12 +28,15 @@ Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jst
     const char * c_model_path = env->GetStringUTFChars(model_path, nullptr);
     const char * c_mmproj_path = env->GetStringUTFChars(mmproj_path, nullptr);
 
+    const int safe_threads = std::max(1, std::min(static_cast<int>(num_threads), MAX_SAFE_THREADS));
+
     LOGI("Loading text model from %s", c_model_path);
+    LOGI("Using safe mobile inference config: threads=%d, gpu_offload=off, flash_attn=disabled", safe_threads);
     
     llama_backend_init();
 
     llama_model_params model_params = llama_model_default_params();
-    model_params.n_gpu_layers = 99; // offload to GPU/Vulkan if possible
+    model_params.n_gpu_layers = 0;
 
     g_model = llama_model_load_from_file(c_model_path, model_params);
     if (!g_model) {
@@ -43,9 +48,9 @@ Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jst
 
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = 4096; // Adjust based on model
-    ctx_params.n_threads = num_threads;
-    ctx_params.n_threads_batch = num_threads;
-    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
+    ctx_params.n_threads = safe_threads;
+    ctx_params.n_threads_batch = safe_threads;
+    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
 
     g_lctx = llama_init_from_model(g_model, ctx_params);
     if (!g_lctx) {
@@ -55,8 +60,10 @@ Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jst
 
     LOGI("Loading vision model from %s", c_mmproj_path);
     mtmd_context_params mtmd_params = mtmd_context_params_default();
-    mtmd_params.use_gpu = true;
-    mtmd_params.n_threads = num_threads;
+    mtmd_params.use_gpu = false;
+    mtmd_params.n_threads = safe_threads;
+    mtmd_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
+    mtmd_params.warmup = false;
 
     g_mtmd_ctx = mtmd_init_from_file(c_mmproj_path, g_model, mtmd_params);
     if (!g_mtmd_ctx) {
