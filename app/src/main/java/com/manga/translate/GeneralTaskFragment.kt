@@ -211,7 +211,7 @@ class GeneralTaskFragment : Fragment() {
         }
         val titleView = TextView(context).apply {
             setTypeface(typeface, Typeface.BOLD)
-            text = title
+            this.text = title
         }
         val contentView = TextView(context).apply {
             this.text = text
