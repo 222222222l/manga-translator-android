@@ -49,7 +49,7 @@ static void reset_model_state() {
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jstring model_path, jstring mmproj_path, jint num_threads) {
+Java_com_manga_translate_LocalVlmClient_nativeInitModel(JNIEnv *env, jobject thiz, jstring model_path, jstring mmproj_path, jint num_threads) {
     g_last_error.clear();
     if (g_model && g_mtmd_ctx && g_lctx && g_smpl) {
         LOGI("Model already initialized");
@@ -146,13 +146,13 @@ Java_com_manga_translate_LocalVlmClient_nativeGetLastErrorMessage(JNIEnv *env, j
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_manga_translate_LocalVlmClient_freeModel(JNIEnv *env, jobject thiz) {
+Java_com_manga_translate_LocalVlmClient_nativeFreeModel(JNIEnv *env, jobject thiz) {
     reset_model_state();
     LOGI("Model freed successfully");
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_manga_translate_LocalVlmClient_processImage(JNIEnv *env, jobject thiz, jbyteArray image_bytes, jstring prompt) {
+Java_com_manga_translate_LocalVlmClient_nativeProcessImage(JNIEnv *env, jobject thiz, jbyteArray image_bytes, jstring prompt) {
     if (!g_model || !g_mtmd_ctx || !g_lctx) {
         LOGE("Model not initialized");
         return env->NewStringUTF("");

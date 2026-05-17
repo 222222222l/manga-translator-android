@@ -107,6 +107,7 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 修复 debug chatbot 页启动期 `Binary XML` inflate 异常：移除 `FreshImageTaskActivity` 布局与消息卡片实现里对 `MaterialCardView` 的依赖，统一回退为 `LinearLayout + bg_surface_card`，避免在当前 `Theme.AppCompat` 壳下打开页面即失败。
 - [x] 修复 debug chatbot 模型初始化排障盲区：native 层现在会回传具体初始化失败阶段（文本模型 / llama context / mtmd / sampler），并在遇到半初始化失败时主动清理残留句柄，避免下次重试被错误地当成“已初始化”。
 - [x] 优化 debug chatbot 长图布局：将图片预览并入中部滚动区、底部提示词和操作按钮固定到底部，并为 `FreshImageTaskActivity` 显式开启 `adjustResize`，避免长图或输入法把“发送”按钮挤出可视区域。
+- [x] 修复 debug chatbot JNI 绑定错误：`LocalVlmClient` 声明的是 `nativeInitModel/nativeFreeModel/nativeProcessImage`，而 `minicpm_v_jni.cpp` 之前仍导出旧的 `initModel/freeModel/processImage` 符号，导致真机报 `UnsatisfiedLinkError`；现已对齐 JNI 方法名并重新通过 `:app:assembleDebug`。
 - [ ] 下一步继续只聚焦聊天页实际运行链路：若页面已能打开但初始化仍失败，优先依据新透传的具体错误信息确认是“LLM 文件损坏/路径错误”“mmproj 与 MiniCPM-V 主模型代际不匹配（不是量化精度问题）”，还是 native 推理阶段的其他运行时异常。
 
 ---
