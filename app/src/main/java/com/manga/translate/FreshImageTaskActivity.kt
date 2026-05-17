@@ -17,10 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,7 +27,7 @@ class FreshImageTaskActivity : AppCompatActivity() {
     private lateinit var promptInput: EditText
     private lateinit var messagesScroll: ScrollView
     private lateinit var messagesContainer: LinearLayout
-    private lateinit var selectedImageCard: MaterialCardView
+    private lateinit var selectedImageCard: LinearLayout
     private lateinit var selectedImageView: ImageView
     private lateinit var selectedImageLabel: TextView
     private lateinit var pipeline: TranslationPipeline
@@ -257,7 +254,7 @@ class FreshImageTaskActivity : AppCompatActivity() {
 
     private fun renderSelectedImage() {
         val bitmap = selectedBitmap
-        selectedImageCard.isVisible = bitmap != null
+        selectedImageCard.visibility = if (bitmap != null) View.VISIBLE else View.GONE
         if (bitmap != null) {
             selectedImageView.setImageBitmap(bitmap)
             selectedImageLabel.text = selectedUri?.lastPathSegment ?: getString(R.string.debug_chat_image_attached)
@@ -282,16 +279,9 @@ class FreshImageTaskActivity : AppCompatActivity() {
 
     private fun createCardContainer(): DebugCardContainer {
         val margin = (12 * resources.displayMetrics.density).toInt()
-        val card = MaterialCardView(this).apply {
-            radius = 24f
-            strokeWidth = 0
-            setCardBackgroundColor(
-                MaterialColors.getColor(
-                    this,
-                    com.google.android.material.R.attr.colorSurface,
-                    0
-                )
-            )
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_surface_card)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -396,7 +386,7 @@ class FreshImageTaskActivity : AppCompatActivity() {
     )
 
     private data class DebugCardContainer(
-        val card: MaterialCardView,
+        val card: LinearLayout,
         val content: LinearLayout
     )
 }

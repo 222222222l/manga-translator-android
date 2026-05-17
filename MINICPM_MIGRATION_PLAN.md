@@ -104,7 +104,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 完成本轮可安装版本递增：已将 `versionCode/versionName` 更新到 `59 / 3.1.3`，避免每次真机验证都重复卸载旧包。
 - [x] 本地构建排障已压缩收口：当前 `keystore.jks` 固定签名已生效，真机可覆盖安装；本地手动 `:app:assembleDebug` 已完整执行到 `packageDebug/createDebugApkListingFileRedirect/assembleDebug`，说明当前主矛盾已从“构建链”切换为“debug chatbot 运行时闪退”。
 - [x] 对 debug chatbot 启动路径做最小化防御：将 `LocalVlmClient` 的 `System.loadLibrary("minicpm_v_jni")` 从类初始化期改为首次真实推理时懒加载，并为 `FreshImageTaskActivity.onCreate()` 补齐启动日志与初始化异常降级，优先验证闪退是否由聊天页打开瞬间提前触发 native 库加载导致。
-- [ ] 下一步只聚焦运行时：若聊天页仍闪退，优先抓取 `AppLogger` 或真机 logcat，确认是 Java 层初始化异常，还是 `minicpm_v_jni` / 依赖 `.so` 在页面打开阶段发生 native 级崩溃。
+- [x] 修复 debug chatbot 页启动期 `Binary XML` inflate 异常：移除 `FreshImageTaskActivity` 布局与消息卡片实现里对 `MaterialCardView` 的依赖，统一回退为 `LinearLayout + bg_surface_card`，避免在当前 `Theme.AppCompat` 壳下打开页面即失败。
+- [ ] 下一步继续只聚焦聊天页实际运行链路：若页面已能打开但发送后仍失败，优先抓取 `AppLogger` 或真机 logcat，确认是“未导入模型/模型未就绪”、Java 层请求编排异常，还是 `minicpm_v_jni` / 依赖 `.so` 在真实推理阶段发生 native 级崩溃。
 
 ---
 *文档生成于：2026-05-17*
