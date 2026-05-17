@@ -55,7 +55,22 @@
             android:name=".ReadingActivity"
             android:exported="false" />
         <activity
+            android:name=".FreshFolderBrowserActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FreshReaderActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FreshImageTaskActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FreshModelCenterActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FreshMainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

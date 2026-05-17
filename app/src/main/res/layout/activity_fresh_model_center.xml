@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_surface_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fresh_model_center_title"
+                android:textAppearance="@style/Widget.MangaTranslator.CardTitle" />
+
+            <TextView
+                android:id="@+id/fresh_model_center_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <TextView
+                android:id="@+id/fresh_model_center_dir"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <Spinner
+                android:id="@+id/fresh_model_center_precision"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <Button
+                android:id="@+id/fresh_model_center_download_llm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/fresh_model_center_download_llm" />
+
+            <Button
+                android:id="@+id/fresh_model_center_import_llm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/fresh_model_center_import_llm" />
+
+            <Button
+                android:id="@+id/fresh_model_center_download_mmproj"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/fresh_model_center_download_mmproj" />
+
+            <Button
+                android:id="@+id/fresh_model_center_import_mmproj"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/fresh_model_center_import_mmproj" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:hint="@string/fresh_model_center_threads_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/fresh_model_center_threads"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/fresh_model_center_save_threads"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/fresh_model_center_save_threads" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
