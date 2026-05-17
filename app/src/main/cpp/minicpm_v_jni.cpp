@@ -12,6 +12,9 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
 static constexpr int MAX_SAFE_THREADS = 2;
+static constexpr int MOBILE_CONTEXT_SIZE = 8192;
+static constexpr int MOBILE_EVAL_TOKENS = 4096;
+static constexpr int MOBILE_MAX_GENERATION_TOKENS = 2048;
 
 static llama_model * g_model = nullptr;
 static llama_context * g_lctx = nullptr;
@@ -47,7 +50,7 @@ Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jst
     }
 
     llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = 4096; // Adjust based on model
+    ctx_params.n_ctx = MOBILE_CONTEXT_SIZE;
     ctx_params.n_threads = safe_threads;
     ctx_params.n_threads_batch = safe_threads;
     ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
@@ -74,9 +77,9 @@ Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jst
     // Initialize sampler
     llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
     g_smpl = llama_sampler_chain_init(sparams);
-    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_k(50));
-    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_p(0.8f, 1));
-    llama_sampler_chain_add(g_smpl, llama_sampler_init_temp(0.7f));
+    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_k(40));
+    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_p(0.95f, 1));
+    llama_sampler_chain_add(g_smpl, llama_sampler_init_temp(0.2f));
 
     env->ReleaseStringUTFChars(model_path, c_model_path);
     env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
@@ -144,9 +147,19 @@ Java_com_manga_translate_LocalVlmClient_processImage(JNIEnv *env, jobject thiz, 
 
     // 3. Evaluate chunks (encode image & decode text)
     llama_memory_clear(llama_get_memory(g_lctx), true);
+    llama_sampler_reset(g_smpl);
     llama_pos n_past = 0;
     
-    int32_t eval_res = mtmd_helper_eval_chunks(g_mtmd_ctx, g_lctx, chunks, n_past, 0, 2048, true, &n_past);
+    int32_t eval_res = mtmd_helper_eval_chunks(
+        g_mtmd_ctx,
+        g_lctx,
+        chunks,
+        n_past,
+        0,
+        MOBILE_EVAL_TOKENS,
+        true,
+        &n_past
+    );
     if (eval_res != 0) {
         LOGE("mtmd_helper_eval_chunks failed with code %d", eval_res);
         mtmd_input_chunks_free(chunks);
@@ -158,7 +171,7 @@ Java_com_manga_translate_LocalVlmClient_processImage(JNIEnv *env, jobject thiz, 
 
     // 4. Generate Text Loop
     std::string response = "";
-    int max_tokens = 1024; // TODO: configurable
+    int max_tokens = MOBILE_MAX_GENERATION_TOKENS;
     
     for (int i = 0; i < max_tokens; i++) {
         llama_token id = llama_sampler_sample(g_smpl, g_lctx, -1);

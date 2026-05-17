@@ -15,7 +15,7 @@ add_subdirectory(llama.cpp)
 find_package(Threads REQUIRED)
 
 set(MTMD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/llama.cpp/tools/mtmd)
-file(GLOB MTMD_SOURCES CONFIGURE_DEPENDS
+file(GLOB MTMD_SOURCES
     "${MTMD_DIR}/*.cpp"
     "${MTMD_DIR}/models/*.cpp"
 )

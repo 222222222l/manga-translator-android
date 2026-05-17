@@ -7,6 +7,7 @@ import android.graphics.RectF
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
@@ -35,45 +36,22 @@ internal class TranslationPipeline(
         providerContext: PageTranslationProviderContext? = null,
         onProgress: (String) -> Unit
     ): TranslationResult? = withContext(Dispatchers.Default) {
-        if (!vlmManager.isModelReady()) {
-            onProgress("MiniCPM-V 端侧模型未导入，请前往设置配置。")
-            AppLogger.log("Pipeline", "Missing VLM models")
-            return@withContext null
-        }
-
-        if (!ensureModelReady()) {
-            onProgress("模型加载失败，请检查模型文件是否损坏。")
-            AppLogger.log("Pipeline", "Failed to initialize local VLM")
-            return@withContext null
-        }
-
-        val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath) ?: run {
-            AppLogger.log("Pipeline", "Failed to decode ${imageFile.name}")
-            return@withContext null
-        }
-
-        try {
-            onProgress("正在分析图片并翻译...")
-            val prompt = buildVlmPrompt(language, glossary)
-            val jsonResult = runCatching {
-                vlmClient.processImage(imageFile.readBytes(), prompt)
-            }.getOrElse { error ->
-                AppLogger.log("Pipeline", "Local VLM inference failed for ${imageFile.name}", error)
-                return@withContext null
+        onProgress("正在执行文字定位...")
+        val result = runStructuredImageTranslation(
+            imageFile = imageFile,
+            language = language,
+            glossary = glossary,
+            customPrompt = "",
+            onProgress = onProgress
+        ) ?: return@withContext null
+        onProgress(
+            if (result.translationResult?.bubbles?.isNotEmpty() == true) {
+                "翻译完成"
+            } else {
+                "模型已运行，但未生成可嵌字结果"
             }
-            AppLogger.log("Pipeline", "VLM Result: $jsonResult")
-            val translatedBubbles = parseVlmJsonToBubbles(jsonResult, bitmap.width, bitmap.height)
-            onProgress("翻译完成")
-            TranslationResult(
-                imageName = imageFile.name,
-                width = bitmap.width,
-                height = bitmap.height,
-                bubbles = translatedBubbles,
-                metadata = buildLocalTranslationMetadata(imageFile, language)
-            )
-        } finally {
-            bitmap.recycle()
-        }
+        )
+        result.translationResult
     }
 
     suspend fun ocrImage(
@@ -259,6 +237,92 @@ internal class TranslationPipeline(
         sanitizeGeneralTaskOutput(rawOutput)
     }
 
+    suspend fun runStructuredImageTranslation(
+        imageFile: File,
+        language: TranslationLanguage = TranslationLanguage.JA_TO_ZH,
+        glossary: Map<String, String> = emptyMap(),
+        customPrompt: String = "",
+        onProgress: (String) -> Unit = { }
+    ): StructuredImageTranslationResult? = withContext(Dispatchers.Default) {
+        if (!vlmManager.isModelReady()) {
+            onProgress("MiniCPM-V 端侧模型未导入，请前往模型中心配置。")
+            AppLogger.log("Pipeline", "Missing VLM models")
+            return@withContext null
+        }
+        if (!ensureModelReady()) {
+            onProgress("模型加载失败，请检查模型文件是否损坏。")
+            AppLogger.log("Pipeline", "Failed to initialize local VLM")
+            return@withContext null
+        }
+
+        val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath) ?: run {
+            AppLogger.log("Pipeline", "Failed to decode ${imageFile.name}")
+            return@withContext null
+        }
+        try {
+            val imageBytes = imageFile.readBytes()
+            val detectionPrompt = buildTextRegionPrompt(customPrompt)
+            val detectionRawOutput = runPromptOnImage(imageBytes, detectionPrompt) ?: return@withContext null
+            AppLogger.log("Pipeline", "Stage1 detection raw: $detectionRawOutput")
+
+            val regions = parseDetectedTextRegions(detectionRawOutput, bitmap.width, bitmap.height)
+            if (regions.isEmpty()) {
+                return@withContext StructuredImageTranslationResult(
+                    translationResult = TranslationResult(
+                        imageName = imageFile.name,
+                        width = bitmap.width,
+                        height = bitmap.height,
+                        bubbles = emptyList(),
+                        metadata = buildLocalTranslationMetadata(imageFile, language)
+                    ),
+                    detectionRawOutput = detectionRawOutput,
+                    translationRawOutput = "",
+                    detectedRegions = emptyList()
+                )
+            }
+
+            onProgress("正在翻译已识别文本...")
+            val translationPrompt = buildDetectedTextTranslationPrompt(
+                language = language,
+                detectedRegions = regions,
+                glossary = glossary,
+                customPrompt = customPrompt
+            )
+            val translationRawOutput = runPromptOnBitmap(createPlaceholderBitmap(), translationPrompt)
+                ?: return@withContext null
+            AppLogger.log("Pipeline", "Stage2 translation raw: $translationRawOutput")
+
+            val translatedTextById = parseTranslatedTextsById(translationRawOutput)
+            val bubbles = regions.mapNotNull { region ->
+                val translatedText = translatedTextById[region.id].orEmpty().trim()
+                if (translatedText.isBlank()) return@mapNotNull null
+                BubbleTranslation.translated(
+                    id = region.id,
+                    rect = region.rect,
+                    translatedText = translatedText,
+                    source = BubbleSource.BUBBLE_DETECTOR,
+                    maskContour = null,
+                    originalText = region.originalText
+                )
+            }
+
+            StructuredImageTranslationResult(
+                translationResult = TranslationResult(
+                    imageName = imageFile.name,
+                    width = bitmap.width,
+                    height = bitmap.height,
+                    bubbles = bubbles,
+                    metadata = buildLocalTranslationMetadata(imageFile, language)
+                ),
+                detectionRawOutput = detectionRawOutput,
+                translationRawOutput = translationRawOutput,
+                detectedRegions = regions
+            )
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
     fun hasValidTranslation(
         imageFile: File,
         fullTranslate: Boolean,
@@ -404,6 +468,78 @@ internal class TranslationPipeline(
         }
     }
 
+    private fun buildTextRegionPrompt(customPrompt: String): String {
+        val normalizedCustomPrompt = customPrompt.trim()
+        return buildString {
+            append("<__media__>\n")
+            append("你现在只负责提取图片中文字的位置和原文，不要翻译，不要总结，不要按分镜归类。\n")
+            append("请识别图片中所有日文或其他可见文本区域，并输出严格 JSON 数组。\n")
+            append("每个元素必须是：{\"id\": 1, \"box\": [x1, y1, x2, y2], \"text\": \"原文\"}\n")
+            append("要求：\n")
+            append("1. box 使用 0-1000 范围的相对坐标。\n")
+            append("2. text 保留原始顺序和换行信息。\n")
+            append("3. 只输出 JSON 数组，不要 markdown，不要解释，不要按 panel 命名。\n")
+            append("4. 如果完全没有文字，输出 []。\n")
+            if (normalizedCustomPrompt.isNotBlank()) {
+                append("附加要求：")
+                append(normalizedCustomPrompt)
+            }
+        }
+    }
+
+    private fun buildDetectedTextTranslationPrompt(
+        language: TranslationLanguage,
+        detectedRegions: List<DetectedTextRegion>,
+        glossary: Map<String, String>,
+        customPrompt: String
+    ): String {
+        val targetLang = when (language) {
+            TranslationLanguage.JA_TO_ZH,
+            TranslationLanguage.EN_TO_ZH,
+            TranslationLanguage.KO_TO_ZH -> "中文"
+        }
+        val sourceJson = JSONArray().apply {
+            detectedRegions.forEach { region ->
+                put(
+                    JSONObject().apply {
+                        put("id", region.id)
+                        put("text", region.originalText)
+                    }
+                )
+            }
+        }.toString()
+        return buildString {
+            append("<__media__>\n")
+            append("下面是已经提取好的漫画文字 JSON，请只负责翻译，不要重新定位，不要补充说明。\n")
+            append("输入 JSON：")
+            append(sourceJson)
+            append('\n')
+            append("请输出严格 JSON 数组：")
+            append("[{\"id\": 1, \"translation\": \"译文\"}]")
+            append('\n')
+            append("要求：\n")
+            append("1. 按 id 一一对应输出。\n")
+            append("2. 将所有文本翻译为")
+            append(targetLang)
+            append("。\n")
+            append("3. 只输出 JSON 数组，不要 markdown，不要解释。\n")
+            if (glossary.isNotEmpty()) {
+                append("术语表：\n")
+                glossary.forEach { (source, target) ->
+                    append("- ")
+                    append(source)
+                    append(": ")
+                    append(target)
+                    append('\n')
+                }
+            }
+            if (customPrompt.isNotBlank()) {
+                append("附加翻译要求：")
+                append(customPrompt.trim())
+            }
+        }
+    }
+
     private fun buildBubblePrompt(language: TranslationLanguage): String {
         val targetLang = when (language) {
             TranslationLanguage.JA_TO_ZH,
@@ -459,6 +595,58 @@ internal class TranslationPipeline(
         } catch (e: Exception) {
             AppLogger.log("Pipeline", "JSON parse error", e)
             emptyList()
+        }
+    }
+
+    private fun parseDetectedTextRegions(
+        jsonString: String,
+        imgWidth: Int,
+        imgHeight: Int
+    ): List<DetectedTextRegion> {
+        val jsonArray = extractJsonArray(jsonString) ?: return emptyList()
+        return buildList {
+            for (index in 0 until jsonArray.length()) {
+                val obj = jsonArray.optJSONObject(index) ?: continue
+                val box = obj.optJSONArray("box") ?: continue
+                val rect = parseRect(box, imgWidth, imgHeight) ?: continue
+                val text = obj.optString("text", "").trim()
+                if (text.isBlank()) continue
+                add(
+                    DetectedTextRegion(
+                        id = obj.optInt("id", index + 1),
+                        rect = rect,
+                        originalText = text
+                    )
+                )
+            }
+        }
+    }
+
+    private fun parseTranslatedTextsById(jsonString: String): Map<Int, String> {
+        val jsonArray = extractJsonArray(jsonString) ?: return emptyMap()
+        return buildMap {
+            for (index in 0 until jsonArray.length()) {
+                val obj = jsonArray.optJSONObject(index) ?: continue
+                val id = obj.optInt("id", -1)
+                val translation = obj.optString("translation", "").trim()
+                if (id <= 0 || translation.isBlank()) continue
+                put(id, translation)
+            }
+        }
+    }
+
+    private fun extractJsonArray(raw: String): JSONArray? {
+        val startIndex = raw.indexOf('[')
+        val endIndex = raw.lastIndexOf(']')
+        if (startIndex == -1 || endIndex == -1 || endIndex <= startIndex) {
+            AppLogger.log("Pipeline", "Missing JSON array in model output")
+            return null
+        }
+        return runCatching {
+            JSONArray(raw.substring(startIndex, endIndex + 1))
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "JSON array parse error", error)
+            null
         }
     }
 
@@ -555,6 +743,26 @@ internal class TranslationPipeline(
         }
     }
 
+    private fun runPromptOnImage(imageBytes: ByteArray, prompt: String): String? {
+        return runCatching {
+            vlmClient.processImage(imageBytes, prompt)
+        }.getOrElse { error ->
+            AppLogger.log("Pipeline", "Structured VLM inference failed", error)
+            null
+        }
+    }
+
+    private fun runPromptOnBitmap(bitmap: Bitmap, prompt: String): String? {
+        val imageBytes = ByteArrayOutputStream().use { output ->
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                AppLogger.log("Pipeline", "Failed to encode placeholder bitmap")
+                return null
+            }
+            output.toByteArray()
+        }
+        return runPromptOnImage(imageBytes, prompt)
+    }
+
     private fun buildExpectedTranslationMetadata(
         imageFile: File,
         fullTranslate: Boolean,
@@ -600,9 +808,22 @@ internal class TranslationPipeline(
         private const val LOCAL_PROVIDER_ID = "local_minicpm_v"
         private const val LOCAL_API_FORMAT = "local"
         private const val LOCAL_CACHE_MODE = "vlm_only"
-        private const val LOCAL_PROMPT_ASSET = "local:minicpm_vlm"
+        private const val LOCAL_PROMPT_ASSET = "local:minicpm_vlm_text_bbox_v2"
     }
 }
+
+data class DetectedTextRegion(
+    val id: Int,
+    val rect: RectF,
+    val originalText: String
+)
+
+data class StructuredImageTranslationResult(
+    val translationResult: TranslationResult,
+    val detectionRawOutput: String,
+    val translationRawOutput: String,
+    val detectedRegions: List<DetectedTextRegion>
+)
 
 data class OcrBubble(
     val id: Int,

@@ -30,6 +30,21 @@
                 android:layout_marginTop="8dp"
                 android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="@string/fresh_image_task_prompt_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/fresh_image_task_prompt_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minLines="3"
+                    android:gravity="top|start"
+                    android:inputType="textMultiLine|textCapSentences" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <Button
                 android:id="@+id/fresh_image_task_pick_button"
                 android:layout_width="match_parent"
@@ -53,5 +68,41 @@
             android:adjustViewBounds="true"
             android:contentDescription="@string/preview_image"
             android:scaleType="fitCenter" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_surface_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fresh_image_task_raw_detection_title"
+                android:textAppearance="@style/Widget.MangaTranslator.CardTitle" />
+
+            <TextView
+                android:id="@+id/fresh_image_task_raw_detection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/fresh_image_task_raw_translation_title"
+                android:textAppearance="@style/Widget.MangaTranslator.CardTitle" />
+
+            <TextView
+                android:id="@+id/fresh_image_task_raw_translation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

@@ -286,6 +286,16 @@ class SettingsStore(context: Context) {
         }
     }
 
+    fun loadImageTaskCustomPrompt(): String {
+        return prefs.getString(KEY_IMAGE_TASK_CUSTOM_PROMPT, "").orEmpty()
+    }
+
+    fun saveImageTaskCustomPrompt(prompt: String) {
+        prefs.edit() {
+            putString(KEY_IMAGE_TASK_CUSTOM_PROMPT, prompt.trim())
+        }
+    }
+
     fun loadUseHorizontalText(): Boolean {
         return prefs.getBoolean(KEY_HORIZONTAL_TEXT, true)
     }
@@ -1162,6 +1172,7 @@ class SettingsStore(context: Context) {
         private const val KEY_OCR_API_TIMEOUT_SECONDS = "ocr_api_timeout_seconds"
         private const val KEY_LOCAL_VLM_THREAD_COUNT = "local_vlm_thread_count"
         private const val KEY_LOCAL_VLM_MODEL_PRECISION = "local_vlm_model_precision"
+        private const val KEY_IMAGE_TASK_CUSTOM_PROMPT = "image_task_custom_prompt"
         private const val KEY_HORIZONTAL_TEXT = "horizontal_text_layout"
         private const val KEY_NORMAL_BUBBLE_SHRINK_PERCENT = "normal_bubble_shrink_percent"
         private const val KEY_NORMAL_BUBBLE_MIN_AREA_PER_CHAR_SP = "normal_bubble_min_area_per_char_sp"

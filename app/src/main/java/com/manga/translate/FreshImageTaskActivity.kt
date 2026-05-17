@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -20,6 +21,9 @@ import java.io.FileOutputStream
 class FreshImageTaskActivity : AppCompatActivity() {
     private lateinit var statusView: TextView
     private lateinit var resultView: ImageView
+    private lateinit var promptInput: EditText
+    private lateinit var rawDetectionView: TextView
+    private lateinit var rawTranslationView: TextView
     private lateinit var pipeline: TranslationPipeline
     private lateinit var renderer: BubbleRenderer
     private lateinit var settingsStore: SettingsStore
@@ -48,8 +52,14 @@ class FreshImageTaskActivity : AppCompatActivity() {
         settingsStore = SettingsStore(applicationContext)
         statusView = findViewById(R.id.fresh_image_task_status)
         resultView = findViewById(R.id.fresh_image_task_result)
+        promptInput = findViewById(R.id.fresh_image_task_prompt_input)
+        rawDetectionView = findViewById(R.id.fresh_image_task_raw_detection)
+        rawTranslationView = findViewById(R.id.fresh_image_task_raw_translation)
 
         statusView.text = getString(R.string.fresh_image_task_hint)
+        promptInput.setText(settingsStore.loadImageTaskCustomPrompt())
+        rawDetectionView.text = getString(R.string.fresh_image_task_raw_empty)
+        rawTranslationView.text = getString(R.string.fresh_image_task_raw_empty)
 
         findViewById<Button>(R.id.fresh_image_task_pick_button).setOnClickListener {
             pickImageLauncher.launch("image/*")
@@ -66,7 +76,15 @@ class FreshImageTaskActivity : AppCompatActivity() {
             }
             lifecycleScope.launch {
                 statusView.text = getString(R.string.fresh_image_task_running)
-                val outcome = withContext(Dispatchers.IO) { runImageTask(uri) }
+                val customPrompt = promptInput.text?.toString().orEmpty()
+                settingsStore.saveImageTaskCustomPrompt(customPrompt)
+                val outcome = withContext(Dispatchers.IO) { runImageTask(uri, customPrompt) }
+                rawDetectionView.text = outcome?.detectionRawOutput?.ifBlank {
+                    getString(R.string.fresh_image_task_raw_empty)
+                } ?: getString(R.string.fresh_image_task_raw_empty)
+                rawTranslationView.text = outcome?.translationRawOutput?.ifBlank {
+                    getString(R.string.fresh_image_task_raw_empty)
+                } ?: getString(R.string.fresh_image_task_raw_empty)
                 if (outcome?.bitmap == null) {
                     statusView.text = outcome?.status ?: getString(R.string.fresh_image_task_failed)
                 } else {
@@ -77,35 +95,49 @@ class FreshImageTaskActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun runImageTask(uri: Uri): ImageTaskOutcome? {
+    private suspend fun runImageTask(uri: Uri, customPrompt: String): ImageTaskOutcome? {
         val tempFile = File(cacheDir, "fresh_image_task_input.png")
         contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(tempFile).use { output -> input.copyTo(output) }
         } ?: return null
         val original = BitmapFactory.decodeFile(tempFile.absolutePath) ?: return null
-        val result = pipeline.translateImage(
+        val pipelineResult = pipeline.runStructuredImageTranslation(
             imageFile = tempFile,
-            glossary = mutableMapOf(),
-            forceOcr = false,
             language = TranslationLanguage.JA_TO_ZH,
-            providerContext = null,
+            glossary = emptyMap(),
+            customPrompt = customPrompt,
             onProgress = { }
-        ) ?: return ImageTaskOutcome(null, getString(R.string.fresh_image_task_failed))
+        ) ?: return ImageTaskOutcome(
+            bitmap = null,
+            status = getString(R.string.fresh_image_task_failed),
+            detectionRawOutput = "",
+            translationRawOutput = ""
+        )
+        val result = pipelineResult.translationResult
         if (result.bubbles.isEmpty()) {
-            return ImageTaskOutcome(null, getString(R.string.fresh_image_task_no_bubbles))
+            return ImageTaskOutcome(
+                bitmap = null,
+                status = getString(R.string.fresh_image_task_no_bubbles),
+                detectionRawOutput = pipelineResult.detectionRawOutput,
+                translationRawOutput = pipelineResult.translationRawOutput
+            )
         }
         return ImageTaskOutcome(
             bitmap = renderer.render(
-            source = original,
-            translation = result,
-            verticalLayoutEnabled = !settingsStore.loadNormalBubbleRenderSettings().useHorizontalText
+                source = original,
+                translation = result,
+                verticalLayoutEnabled = !settingsStore.loadNormalBubbleRenderSettings().useHorizontalText
             ),
-            status = getString(R.string.fresh_image_task_done)
+            status = getString(R.string.fresh_image_task_done),
+            detectionRawOutput = pipelineResult.detectionRawOutput,
+            translationRawOutput = pipelineResult.translationRawOutput
         )
     }
 
     private data class ImageTaskOutcome(
         val bitmap: Bitmap?,
-        val status: String
+        val status: String,
+        val detectionRawOutput: String,
+        val translationRawOutput: String
     )
 }

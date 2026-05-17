@@ -555,7 +555,7 @@
     <string name="fresh_home_importing">正在导入，请稍候…</string>
     <string name="fresh_import_folder">从漫画文件夹导入</string>
     <string name="fresh_import_archive">从 CBZ/ZIP/PDF 导入</string>
-    <string name="fresh_open_image_task">打开图像任务</string>
+    <string name="fresh_open_image_task">打开通用任务</string>
     <string name="fresh_open_model_center">打开模型中心</string>
     <string name="fresh_library_title">漫画项目</string>
     <string name="fresh_library_empty">还没有漫画项目，请先导入。</string>
@@ -572,8 +572,9 @@
     <string name="fresh_reader_next">下一页</string>
     <string name="fresh_reader_show_original">查看原图</string>
     <string name="fresh_reader_show_translated">查看译图</string>
-    <string name="fresh_image_task_title">图像任务</string>
-    <string name="fresh_image_task_hint">选择一张图片后，直接生成端侧识别 + 自动嵌字结果。</string>
+    <string name="fresh_image_task_title">通用任务</string>
+    <string name="fresh_image_task_hint">选择一张图片后，先提取文字 bbox 与原文 JSON，再翻译并生成自动嵌字结果。</string>
+    <string name="fresh_image_task_prompt_hint">自定义提示词（可选）</string>
     <string name="fresh_image_task_pick">选择图片</string>
     <string name="fresh_image_task_translate">开始翻译嵌字</string>
     <string name="fresh_image_task_no_image">请先选择一张图片。</string>
@@ -582,6 +583,9 @@
     <string name="fresh_image_task_no_bubbles">模型已运行，但没有识别到可嵌字的文字区域。</string>
     <string name="fresh_image_task_failed">图像任务失败，请检查模型是否可用。</string>
     <string name="fresh_image_task_done">图像任务已完成，当前显示嵌字结果。</string>
+    <string name="fresh_image_task_raw_detection_title">阶段 1 原始输出</string>
+    <string name="fresh_image_task_raw_translation_title">阶段 2 原始输出</string>
+    <string name="fresh_image_task_raw_empty">当前还没有模型原始输出。</string>
     <string name="fresh_model_center_title">模型中心</string>
     <string name="fresh_model_center_dir">模型目录: %1$s</string>
     <string name="fresh_model_center_download_llm">下载当前精度 LLM</string>
