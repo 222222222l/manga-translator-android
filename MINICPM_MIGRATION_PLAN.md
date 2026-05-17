@@ -108,6 +108,8 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 修复 debug chatbot 模型初始化排障盲区：native 层现在会回传具体初始化失败阶段（文本模型 / llama context / mtmd / sampler），并在遇到半初始化失败时主动清理残留句柄，避免下次重试被错误地当成“已初始化”。
 - [x] 优化 debug chatbot 长图布局：将图片预览并入中部滚动区、底部提示词和操作按钮固定到底部，并为 `FreshImageTaskActivity` 显式开启 `adjustResize`，避免长图或输入法把“发送”按钮挤出可视区域。
 - [x] 修复 debug chatbot JNI 绑定错误：`LocalVlmClient` 声明的是 `nativeInitModel/nativeFreeModel/nativeProcessImage`，而 `minicpm_v_jni.cpp` 之前仍导出旧的 `initModel/freeModel/processImage` 符号，导致真机报 `UnsatisfiedLinkError`；现已对齐 JNI 方法名并重新通过 `:app:assembleDebug`。
+- [x] 为 `LocalVlmClient` 再加一层保守 JNI 兜底：在 `minicpm_v_jni.cpp` 中补齐 `JNI_OnLoad + RegisterNatives`，显式将 `nativeInitModel/nativeGetLastErrorMessage/nativeFreeModel/nativeProcessImage` 绑定到当前 so，绕过运行时按名称自动解析仍命中旧符号/旧产物的风险。
+- [x] 根据官方 `MiniCPM-V-demo-Android` 推理链路收敛 debug chatbot 的 native 主流程：不再把图片和 `<__media__>` 提示词一次性黑箱塞给 `mtmd_tokenize`，改为更接近官方的“图像 marker 预填充 -> 用户提示词 eval -> 按 `current_position` 逐 token 解码”三阶段流程，并去掉原先生成阶段错误的 `llama_batch_get_one()` 位置缺失路径。
 - [ ] 下一步继续只聚焦聊天页实际运行链路：若页面已能打开但初始化仍失败，优先依据新透传的具体错误信息确认是“LLM 文件损坏/路径错误”“mmproj 与 MiniCPM-V 主模型代际不匹配（不是量化精度问题）”，还是 native 推理阶段的其他运行时异常。
 
 ---
