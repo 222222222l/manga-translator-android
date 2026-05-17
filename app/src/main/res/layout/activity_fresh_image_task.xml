@@ -3,7 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingStart="16dp"
+    android:paddingTop="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,58 +29,70 @@
             android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
     </LinearLayout>
 
-    <ScrollView
+    <com.manga.translate.SafeNestedScrollView
         android:id="@+id/fresh_image_task_messages_scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:layout_marginTop="12dp"
-        android:fillViewport="true">
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="12dp">
 
         <LinearLayout
-            android:id="@+id/fresh_image_task_messages_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/fresh_image_task_selected_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_surface_card"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/fresh_image_task_selected_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="14dp"
+                    android:paddingTop="14dp"
+                    android:paddingEnd="14dp"
+                    android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
+
+                <ImageView
+                    android:id="@+id/fresh_image_task_selected_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/preview_image"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="14dp"
+                    android:scaleType="fitCenter" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/fresh_image_task_messages_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+    </com.manga.translate.SafeNestedScrollView>
 
     <LinearLayout
-        android:id="@+id/fresh_image_task_selected_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:background="@drawable/bg_surface_card"
         android:orientation="vertical"
-        android:visibility="gone">
-        <TextView
-            android:id="@+id/fresh_image_task_selected_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="14dp"
-            android:paddingEnd="14dp"
-            android:textAppearance="@style/Widget.MangaTranslator.BodyMuted" />
-
-        <ImageView
-            android:id="@+id/fresh_image_task_selected_image"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:adjustViewBounds="true"
-            android:contentDescription="@string/preview_image"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="14dp"
-            android:scaleType="fitCenter" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_surface_card"
-        android:orientation="vertical"
-        android:padding="18dp">
+        android:paddingStart="18dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="26dp">
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -90,8 +105,8 @@
                 android:layout_height="wrap_content"
                 android:gravity="top|start"
                 android:inputType="textMultiLine|textCapSentences"
-                android:minLines="3"
-                android:maxLines="6" />
+                android:maxLines="6"
+                android:minLines="3" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout

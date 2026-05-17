@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <android/log.h>
@@ -20,75 +21,14 @@ static llama_model * g_model = nullptr;
 static llama_context * g_lctx = nullptr;
 static mtmd_context * g_mtmd_ctx = nullptr;
 static llama_sampler * g_smpl = nullptr;
+static std::string g_last_error;
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jstring model_path, jstring mmproj_path, jint num_threads) {
-    if (g_model || g_mtmd_ctx) {
-        LOGI("Model already initialized");
-        return JNI_TRUE;
-    }
-
-    const char * c_model_path = env->GetStringUTFChars(model_path, nullptr);
-    const char * c_mmproj_path = env->GetStringUTFChars(mmproj_path, nullptr);
-
-    const int safe_threads = std::max(1, std::min(static_cast<int>(num_threads), MAX_SAFE_THREADS));
-
-    LOGI("Loading text model from %s", c_model_path);
-    LOGI("Using safe mobile inference config: threads=%d, gpu_offload=off, flash_attn=disabled", safe_threads);
-    
-    llama_backend_init();
-
-    llama_model_params model_params = llama_model_default_params();
-    model_params.n_gpu_layers = 0;
-
-    g_model = llama_model_load_from_file(c_model_path, model_params);
-    if (!g_model) {
-        LOGE("Failed to load text model");
-        env->ReleaseStringUTFChars(model_path, c_model_path);
-        env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
-        return JNI_FALSE;
-    }
-
-    llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = MOBILE_CONTEXT_SIZE;
-    ctx_params.n_threads = safe_threads;
-    ctx_params.n_threads_batch = safe_threads;
-    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
-
-    g_lctx = llama_init_from_model(g_model, ctx_params);
-    if (!g_lctx) {
-        LOGE("Failed to initialize llama context");
-        return JNI_FALSE;
-    }
-
-    LOGI("Loading vision model from %s", c_mmproj_path);
-    mtmd_context_params mtmd_params = mtmd_context_params_default();
-    mtmd_params.use_gpu = false;
-    mtmd_params.n_threads = safe_threads;
-    mtmd_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
-    mtmd_params.warmup = false;
-
-    g_mtmd_ctx = mtmd_init_from_file(c_mmproj_path, g_model, mtmd_params);
-    if (!g_mtmd_ctx) {
-        LOGE("Failed to initialize mtmd context");
-        return JNI_FALSE;
-    }
-
-    // Initialize sampler
-    llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
-    g_smpl = llama_sampler_chain_init(sparams);
-    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_k(40));
-    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_p(0.95f, 1));
-    llama_sampler_chain_add(g_smpl, llama_sampler_init_temp(0.2f));
-
-    env->ReleaseStringUTFChars(model_path, c_model_path);
-    env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
-    LOGI("Model loaded successfully");
-    return JNI_TRUE;
+static void set_last_error(const std::string & message) {
+    g_last_error = message;
+    LOGE("%s", g_last_error.c_str());
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_manga_translate_LocalVlmClient_freeModel(JNIEnv *env, jobject thiz) {
+static void reset_model_state() {
     if (g_smpl) {
         llama_sampler_free(g_smpl);
         g_smpl = nullptr;
@@ -106,6 +46,108 @@ Java_com_manga_translate_LocalVlmClient_freeModel(JNIEnv *env, jobject thiz) {
         g_model = nullptr;
     }
     llama_backend_free();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_manga_translate_LocalVlmClient_initModel(JNIEnv *env, jobject thiz, jstring model_path, jstring mmproj_path, jint num_threads) {
+    g_last_error.clear();
+    if (g_model && g_mtmd_ctx && g_lctx && g_smpl) {
+        LOGI("Model already initialized");
+        return JNI_TRUE;
+    }
+    if (g_model || g_mtmd_ctx || g_lctx || g_smpl) {
+        LOGI("Found stale partial model state, resetting before re-initialization");
+        reset_model_state();
+    }
+
+    const char * c_model_path = env->GetStringUTFChars(model_path, nullptr);
+    const char * c_mmproj_path = env->GetStringUTFChars(mmproj_path, nullptr);
+
+    const int safe_threads = std::max(1, std::min(static_cast<int>(num_threads), MAX_SAFE_THREADS));
+
+    LOGI("Loading text model from %s", c_model_path);
+    LOGI("Using safe mobile inference config: threads=%d, gpu_offload=off, flash_attn=disabled", safe_threads);
+    
+    llama_backend_init();
+
+    llama_model_params model_params = llama_model_default_params();
+    model_params.n_gpu_layers = 0;
+
+    g_model = llama_model_load_from_file(c_model_path, model_params);
+    if (!g_model) {
+        set_last_error(std::string("Failed to load text model: ") + c_model_path);
+        env->ReleaseStringUTFChars(model_path, c_model_path);
+        env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
+        reset_model_state();
+        return JNI_FALSE;
+    }
+
+    llama_context_params ctx_params = llama_context_default_params();
+    ctx_params.n_ctx = MOBILE_CONTEXT_SIZE;
+    ctx_params.n_threads = safe_threads;
+    ctx_params.n_threads_batch = safe_threads;
+    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
+
+    g_lctx = llama_init_from_model(g_model, ctx_params);
+    if (!g_lctx) {
+        set_last_error(std::string("Failed to initialize llama context for text model: ") + c_model_path);
+        env->ReleaseStringUTFChars(model_path, c_model_path);
+        env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
+        reset_model_state();
+        return JNI_FALSE;
+    }
+
+    LOGI("Loading vision model from %s", c_mmproj_path);
+    mtmd_context_params mtmd_params = mtmd_context_params_default();
+    mtmd_params.use_gpu = false;
+    mtmd_params.n_threads = safe_threads;
+    mtmd_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
+    mtmd_params.warmup = false;
+
+    g_mtmd_ctx = mtmd_init_from_file(c_mmproj_path, g_model, mtmd_params);
+    if (!g_mtmd_ctx) {
+        set_last_error(
+            std::string("Failed to initialize mtmd context from mmproj: ") +
+            c_mmproj_path +
+            ". Check whether the LLM and mmproj belong to the same MiniCPM-V family and whether the file is complete."
+        );
+        env->ReleaseStringUTFChars(model_path, c_model_path);
+        env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
+        reset_model_state();
+        return JNI_FALSE;
+    }
+
+    // Initialize sampler
+    llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
+    g_smpl = llama_sampler_chain_init(sparams);
+    if (!g_smpl) {
+        set_last_error("Failed to initialize sampler chain");
+        env->ReleaseStringUTFChars(model_path, c_model_path);
+        env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
+        reset_model_state();
+        return JNI_FALSE;
+    }
+    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_k(40));
+    llama_sampler_chain_add(g_smpl, llama_sampler_init_top_p(0.95f, 1));
+    llama_sampler_chain_add(g_smpl, llama_sampler_init_temp(0.2f));
+
+    env->ReleaseStringUTFChars(model_path, c_model_path);
+    env->ReleaseStringUTFChars(mmproj_path, c_mmproj_path);
+    LOGI("Model loaded successfully");
+    return JNI_TRUE;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_manga_translate_LocalVlmClient_nativeGetLastErrorMessage(JNIEnv *env, jobject thiz) {
+    if (g_last_error.empty()) {
+        return nullptr;
+    }
+    return env->NewStringUTF(g_last_error.c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_manga_translate_LocalVlmClient_freeModel(JNIEnv *env, jobject thiz) {
+    reset_model_state();
     LOGI("Model freed successfully");
 }
 

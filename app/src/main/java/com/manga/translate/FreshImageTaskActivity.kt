@@ -12,7 +12,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,7 +24,7 @@ import kotlinx.coroutines.withContext
 class FreshImageTaskActivity : AppCompatActivity() {
     private lateinit var statusView: TextView
     private lateinit var promptInput: EditText
-    private lateinit var messagesScroll: ScrollView
+    private lateinit var messagesScroll: SafeNestedScrollView
     private lateinit var messagesContainer: LinearLayout
     private lateinit var selectedImageCard: LinearLayout
     private lateinit var selectedImageView: ImageView

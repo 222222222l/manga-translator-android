@@ -28,6 +28,11 @@ class LocalVlmClient {
         return nativeInitModel(modelPath, mmprojPath, numThreads)
     }
 
+    fun getLastInitErrorMessage(): String? {
+        if (!libraryLoaded) return getLibraryLoadErrorMessage()
+        return nativeGetLastErrorMessage()
+    }
+
     fun freeModel() {
         if (!libraryLoaded) return
         nativeFreeModel()
@@ -62,6 +67,8 @@ class LocalVlmClient {
     }
 
     private external fun nativeInitModel(modelPath: String, mmprojPath: String, numThreads: Int): Boolean
+
+    private external fun nativeGetLastErrorMessage(): String?
 
     private external fun nativeFreeModel()
 

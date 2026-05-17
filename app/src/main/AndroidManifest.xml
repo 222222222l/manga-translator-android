@@ -62,7 +62,8 @@
             android:exported="false" />
         <activity
             android:name=".FreshImageTaskActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".FreshModelCenterActivity"
             android:exported="false" />

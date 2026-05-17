@@ -27,6 +27,8 @@ internal class TranslationPipeline(
     private var initializedMmprojModelPath: String? = null
     @Volatile
     private var initializedThreadCount: Int? = null
+    @Volatile
+    private var lastModelInitError: String? = null
 
     suspend fun translateImage(
         imageFile: File,
@@ -265,7 +267,8 @@ internal class TranslationPipeline(
                 normalizedOutput = "",
                 elapsedMs = System.currentTimeMillis() - startedAt,
                 modelReady = false,
-                errorMessage = "模型初始化失败，请检查模型文件与 mmproj 是否匹配。"
+                errorMessage = lastModelInitError
+                    ?: "模型初始化失败。请检查 LLM 与 mmproj 是否属于同一 MiniCPM-V 版本，且文件没有损坏。"
             )
         }
         val inputBitmap = bitmap ?: createPlaceholderBitmap()
@@ -486,6 +489,7 @@ internal class TranslationPipeline(
     @Synchronized
     private fun ensureModelReady(): Boolean {
         if (!vlmClient.isLibraryAvailable()) {
+            lastModelInitError = vlmClient.getLibraryLoadErrorMessage()
             AppLogger.error(
                 "Pipeline",
                 "MiniCPM native library is unavailable: ${vlmClient.getLibraryLoadErrorMessage().orEmpty()}"
@@ -509,6 +513,11 @@ internal class TranslationPipeline(
             runCatching { vlmClient.freeModel() }
             modelInitialized = false
         }
+        lastModelInitError = null
+        AppLogger.log(
+            "Pipeline",
+            "Initializing MiniCPM model text=${textModelPath} size=${vlmManager.textModelFile.length()} mmproj=${mmprojModelPath} size=${vlmManager.mmprojModelFile.length()} threads=${configuredThreads}"
+        )
         val initialized = runCatching {
             vlmClient.initModel(
                 textModelPath,
@@ -517,6 +526,7 @@ internal class TranslationPipeline(
             )
         }.getOrElse { error ->
             AppLogger.log("Pipeline", "Failed to initialize MiniCPM native model", error)
+            lastModelInitError = "${error::class.java.simpleName}: ${error.message.orEmpty()}".trim()
             false
         }
         modelInitialized = initialized
@@ -524,6 +534,17 @@ internal class TranslationPipeline(
             initializedTextModelPath = textModelPath
             initializedMmprojModelPath = mmprojModelPath
             initializedThreadCount = configuredThreads
+            lastModelInitError = null
+        } else if (lastModelInitError.isNullOrBlank()) {
+            lastModelInitError = buildString {
+                append(vlmClient.getLastInitErrorMessage()
+                    ?: "MiniCPM native init returned false.")
+                append(" 当前 LLM=")
+                append(vlmManager.textModelFile.name)
+                append("，mmproj=")
+                append(vlmManager.mmprojModelFile.name)
+                append("。")
+            }
         }
         return initialized
     }

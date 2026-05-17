@@ -105,7 +105,9 @@ MiniCPM-V 4.6 参数量为 1.3B，全精度 (FP16) 约占用 2.6GB 内存。为�
 - [x] 本地构建排障已压缩收口：当前 `keystore.jks` 固定签名已生效，真机可覆盖安装；本地手动 `:app:assembleDebug` 已完整执行到 `packageDebug/createDebugApkListingFileRedirect/assembleDebug`，说明当前主矛盾已从“构建链”切换为“debug chatbot 运行时闪退”。
 - [x] 对 debug chatbot 启动路径做最小化防御：将 `LocalVlmClient` 的 `System.loadLibrary("minicpm_v_jni")` 从类初始化期改为首次真实推理时懒加载，并为 `FreshImageTaskActivity.onCreate()` 补齐启动日志与初始化异常降级，优先验证闪退是否由聊天页打开瞬间提前触发 native 库加载导致。
 - [x] 修复 debug chatbot 页启动期 `Binary XML` inflate 异常：移除 `FreshImageTaskActivity` 布局与消息卡片实现里对 `MaterialCardView` 的依赖，统一回退为 `LinearLayout + bg_surface_card`，避免在当前 `Theme.AppCompat` 壳下打开页面即失败。
-- [ ] 下一步继续只聚焦聊天页实际运行链路：若页面已能打开但发送后仍失败，优先抓取 `AppLogger` 或真机 logcat，确认是“未导入模型/模型未就绪”、Java 层请求编排异常，还是 `minicpm_v_jni` / 依赖 `.so` 在真实推理阶段发生 native 级崩溃。
+- [x] 修复 debug chatbot 模型初始化排障盲区：native 层现在会回传具体初始化失败阶段（文本模型 / llama context / mtmd / sampler），并在遇到半初始化失败时主动清理残留句柄，避免下次重试被错误地当成“已初始化”。
+- [x] 优化 debug chatbot 长图布局：将图片预览并入中部滚动区、底部提示词和操作按钮固定到底部，并为 `FreshImageTaskActivity` 显式开启 `adjustResize`，避免长图或输入法把“发送”按钮挤出可视区域。
+- [ ] 下一步继续只聚焦聊天页实际运行链路：若页面已能打开但初始化仍失败，优先依据新透传的具体错误信息确认是“LLM 文件损坏/路径错误”“mmproj 与 MiniCPM-V 主模型代际不匹配（不是量化精度问题）”，还是 native 推理阶段的其他运行时异常。
 
 ---
 *文档生成于：2026-05-17*
